@@ -1,0 +1,1120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VAB — Acquisition Deal Analyzer</title>
+<style>
+  :root{
+    --navy:#0b1f3a;--navy2:#13294b;--ink:#0f172a;--muted:#64748b;--faint:#94a3b8;
+    --line:#e6eaf0;--bg:#eef1f6;--card:#fff;--brand:#1d65d8;--brand2:#3b82f6;
+    --green:#0f7a47;--green-bg:#e7f6ee;--green-line:#bfe6cf;
+    --amber:#9a6a00;--amber-bg:#fdf3da;--amber-line:#f0dba0;
+    --red:#bb2418;--red-bg:#fde7e4;--red-line:#f4c2bc;
+    --gray:#475569;--gray-bg:#eef1f5;
+    --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.06);
+    --shadow-lg:0 10px 40px rgba(11,31,58,.18);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:-.01em;}
+  code{background:#eef1f5;padding:1px 5px;border-radius:5px;font-size:12px;}
+  header{background:radial-gradient(1200px 200px at 20% -40%,#1c3f73,transparent),linear-gradient(180deg,var(--navy),var(--navy2));color:#fff;padding:20px 26px;}
+  header .title{font-size:21px;font-weight:800;} header .sub{color:#aabbd6;font-size:12.5px;margin-top:3px;}
+  .wrap{max-width:1200px;margin:0 auto;padding:22px 26px 70px;}
+  .banner{background:linear-gradient(180deg,#fffaf0,#fff7e6);border:1px solid #f0dba0;color:#7a5a00;border-radius:12px;padding:12px 15px;font-size:12.5px;margin-bottom:18px;}
+  .tabs{display:flex;gap:4px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:5px;margin-bottom:20px;box-shadow:var(--shadow);width:fit-content;flex-wrap:wrap;}
+  .tab{padding:8px 16px;border:none;background:none;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--muted);border-radius:8px;}
+  .tab.active{color:#fff;background:linear-gradient(180deg,var(--brand2),var(--brand));}
+  .panel{display:none;} .panel.active{display:block;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px;}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 16px;box-shadow:var(--shadow);}
+  .stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;}
+  .stat .v{font-size:23px;font-weight:800;margin-top:3px;letter-spacing:-.02em;} .stat .v.sm{font-size:17px;}
+  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+  select,input[type=text],input[type=number],textarea{border:1px solid #cbd5e1;border-radius:9px;padding:8px 11px;background:#fff;font:inherit;}
+  .btn{background:linear-gradient(180deg,var(--brand2),var(--brand));color:#fff;border:none;border-radius:9px;padding:9px 17px;font-weight:700;cursor:pointer;box-shadow:var(--shadow);}
+  .btn:hover{filter:brightness(1.05);} .btn.ghost{background:#fff;color:var(--ink);border:1px solid #cbd5e1;box-shadow:none;} .btn.dark{background:linear-gradient(180deg,#1c3f73,var(--navy));}
+  .note{font-size:12px;color:var(--muted);}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:13px;overflow:hidden;box-shadow:var(--shadow);}
+  th,td{padding:11px 13px;text-align:left;border-bottom:1px solid #f1f4f8;}
+  th{background:#f8fafc;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  tbody tr{transition:background .12s;} tbody tr.click:hover{background:#f6f9ff;cursor:pointer;} tbody tr:last-child td{border-bottom:none;}
+  .chip{display:inline-flex;align-items:center;gap:5px;border-radius:7px;padding:3px 9px;font-size:11.5px;font-weight:800;border:1px solid transparent;}
+  .chip.proceed{background:var(--green-bg);color:var(--green);border-color:var(--green-line);}
+  .chip.conditional{background:var(--amber-bg);color:var(--amber);border-color:var(--amber-line);}
+  .chip.pass{background:var(--red-bg);color:var(--red);border-color:var(--red-line);}
+  .chip.insufficient_data{background:var(--gray-bg);color:var(--gray);border-color:#d7dde6;}
+  .est{font-size:9.5px;font-weight:800;color:#7a5a00;background:#fdf3da;border:1px solid #f0dba0;border-radius:5px;padding:0 4px;margin-left:5px;vertical-align:middle;text-transform:uppercase;}
+  .risk-low{color:var(--green);} .risk-medium{color:#9a6a00;} .risk-high{color:#c2410c;} .risk-critical{color:var(--red);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);}
+  .card h3{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:13px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;} .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  @media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr;}}
+  label.field{display:block;margin-bottom:11px;} label.field span{font-size:12px;color:#475569;font-weight:600;display:block;margin-bottom:4px;} label.field input{width:100%;}
+  .formgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;} @media(max-width:640px){.metrics{grid-template-columns:1fr 1fr;}}
+  .metric{border:1px solid var(--line);border-radius:11px;padding:12px 13px;background:linear-gradient(180deg,#fff,#fbfcfe);}
+  .metric .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;} .metric .v{font-size:18px;font-weight:800;margin-top:3px;} .metric .h{font-size:11px;color:var(--faint);}
+  .bar{height:9px;background:#eef1f5;border-radius:99px;overflow:hidden;margin-top:6px;} .bar>span{display:block;height:100%;border-radius:99px;}
+  .bar.risk>span{background:linear-gradient(90deg,#f08a6e,#e0533f);} .bar.benefit>span{background:linear-gradient(90deg,#43c98a,#0f7a47);}
+  .scen{border:1px solid var(--line);border-radius:11px;padding:14px;background:linear-gradient(180deg,#fff,#fbfcfe);}
+  .scen .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;}
+  .scen dl{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin:0;font-size:13px;} .scen dt{color:var(--muted);} .scen dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;}
+  .pos{color:var(--green);} .neg{color:var(--red);}
+  .factors{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:6px;} @media(max-width:640px){.factors{grid-template-columns:1fr;}}
+  .factor{display:flex;gap:9px;align-items:flex-start;font-size:13px;margin-bottom:8px;} .pts{font-size:11px;font-weight:800;border-radius:5px;padding:1px 6px;flex:none;margin-top:1px;}
+  .pts.risk{background:var(--red-bg);color:var(--red);} .pts.benefit{background:var(--green-bg);color:var(--green);}
+  .warn{background:var(--amber-bg);border:1px solid var(--amber-line);color:var(--amber);border-radius:11px;padding:11px 13px;font-size:13px;margin:14px 0;}
+  .modal-bg{position:fixed;inset:0;background:rgba(11,31,58,.5);backdrop-filter:blur(2px);display:none;z-index:60;overflow:auto;} .modal-bg.open{display:block;}
+  .sheet{background:var(--bg);max-width:1080px;margin:30px auto;border-radius:18px;overflow:hidden;box-shadow:var(--shadow-lg);}
+  .sheet .closebar{position:sticky;top:0;z-index:5;display:flex;justify-content:flex-end;padding:10px 14px;}
+  .sheet .x{border:none;background:rgba(255,255,255,.92);width:34px;height:34px;border-radius:50%;font-size:20px;cursor:pointer;color:#334155;box-shadow:var(--shadow);}
+  .sheet .body{padding:0 22px 26px;}
+  .compsheet{max-width:680px;}
+  .hero{display:grid;grid-template-columns:1.3fr 1fr;gap:18px;margin-top:0;} @media(max-width:820px){.hero{grid-template-columns:1fr;}}
+  .gallery{margin-top:-44px;} @media(max-width:820px){.gallery{margin-top:0;}}
+  .gallery .main{aspect-ratio:16/10;border-radius:14px;overflow:hidden;box-shadow:var(--shadow);background:#dbe3ee;} .gallery .main img{width:100%;height:100%;object-fit:cover;display:block;}
+  .gallery .thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;} .gallery .thumbs img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:9px;cursor:pointer;border:2px solid transparent;} .gallery .thumbs img.active{border-color:var(--brand);}
+  .heroinfo{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;}
+  .heroinfo .addr{font-size:20px;font-weight:800;} .heroinfo .loc{color:var(--muted);font-size:13px;margin-top:2px;}
+  .pills{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0;} .pill{background:#f1f5fb;border:1px solid #e2e8f3;border-radius:8px;padding:5px 9px;font-size:12px;font-weight:600;color:#334155;} .pill b{font-weight:800;}
+  .bigval{margin-top:auto;} .bigval .lab{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;} .bigval .amt{font-size:30px;font-weight:800;}
+  .section{margin-top:18px;} .secttitle{font-size:13px;font-weight:800;letter-spacing:.3px;color:var(--navy);margin:0 0 10px;text-transform:uppercase;}
+  .appr{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;} @media(max-width:640px){.appr{grid-template-columns:1fr;}}
+  .apprcol{border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center;background:linear-gradient(180deg,#fff,#f7fbff);} .apprcol .yr{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);} .apprcol .val{font-size:22px;font-weight:800;margin:6px 0 2px;} .apprcol .gain{font-size:12.5px;font-weight:700;} .apprbar{height:7px;border-radius:99px;background:#eaf0f8;margin-top:10px;overflow:hidden;} .apprbar>span{display:block;height:100%;background:linear-gradient(90deg,#5aa0ff,#1d65d8);}
+  .kv{display:grid;grid-template-columns:1fr auto;gap:7px 14px;font-size:13.5px;} .kv dt{color:var(--muted);} .kv dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;}
+  .trend{font-weight:800;font-size:12px;padding:2px 7px;border-radius:6px;} .trend.rising{background:var(--green-bg);color:var(--green);} .trend.falling{background:var(--red-bg);color:var(--red);} .trend.stable{background:#eef2f7;color:#475569;} .trend.unknown{background:#f1f5f9;color:#94a3b8;}
+  .areagrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;} @media(max-width:760px){.areagrid{grid-template-columns:1fr 1fr;}}
+  .acard{border:1px solid var(--line);border-radius:12px;padding:13px;background:#fff;} .acard .t{font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:700;} .acard .m{font-size:19px;font-weight:800;margin:4px 0;} .acard .s{font-size:12px;color:var(--faint);}
+  .school-dots{display:inline-flex;gap:2px;margin-left:6px;} .school-dots i{width:7px;height:7px;border-radius:50%;background:#e2e8f0;display:inline-block;} .school-dots i.on{background:#1d65d8;}
+  .row-between{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .seg{display:inline-flex;border:1px solid #cbd5e1;border-radius:9px;overflow:hidden;} .seg button{border:none;background:#fff;padding:7px 13px;cursor:pointer;font-weight:700;color:#64748b;font-size:13px;} .seg button.active{background:var(--navy);color:#fff;}
+  textarea{width:100%;min-height:240px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;}
+  .ok-msg{color:var(--green);font-weight:700;} .err-msg{color:var(--red);font-weight:700;}
+  th.sortable{cursor:pointer;user-select:none;} th.sortable:hover{color:var(--brand);} th.sortable.asc::after{content:" ▲";font-size:9px;} th.sortable.desc::after{content:" ▼";font-size:9px;}
+  .chartwrap{position:relative;} .chartGuide{position:absolute;top:14px;bottom:30px;width:1px;background:var(--brand);opacity:.45;pointer-events:none;display:none;} .chartTip{position:absolute;top:6px;background:#0b1f3a;color:#fff;font-size:11px;font-weight:600;border-radius:7px;padding:5px 9px;pointer-events:none;display:none;white-space:nowrap;box-shadow:var(--shadow);z-index:3;}
+  .mapdot{cursor:pointer;transition:opacity .1s;} .mapdot:hover{opacity:.75;} .maploading{padding:48px 20px;text-align:center;color:var(--muted);font-size:13px;background:linear-gradient(180deg,#eef4fb,#e2ebf7);border-radius:12px;border:1px solid var(--line);} .maplegend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px;} .maplegend span{display:inline-flex;align-items:center;gap:5px;} .maplegend i{width:10px;height:10px;border-radius:50%;display:inline-block;}
+  .cmptable th,.cmptable td{white-space:nowrap;} .cmptable td.metric{font-weight:600;color:var(--muted);position:sticky;left:0;background:#fff;}
+  .sensgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px 22px;} @media(max-width:640px){.sensgrid{grid-template-columns:1fr;}}
+  .sensgrid label{display:block;font-size:12px;font-weight:600;color:#475569;} .sensgrid label b{float:right;color:var(--ink);} .sensgrid input[type=range]{width:100%;margin-top:8px;accent-color:var(--brand);}
+  .onepager{background:#fff;border:1px solid var(--line);border-radius:12px;padding:24px;} .onepager h1{font-size:20px;} .op-rec{font-size:13px;}
+  .op-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--navy);padding-bottom:12px;margin-bottom:14px;}
+  .op-cols{display:grid;grid-template-columns:1fr 1fr;gap:22px;} @media(max-width:640px){.op-cols{grid-template-columns:1fr;}}
+  .op-sign{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px;padding-top:14px;border-top:1px solid var(--line);} .op-sign div{font-size:12px;color:var(--muted);} .op-sign .sigline{border-bottom:1px solid #94a3b8;height:26px;margin-bottom:4px;}
+  @media print{
+    header,.tabs,.banner,.panel,.closebar{display:none!important;}
+    body{background:#fff;}
+    .modal-bg{position:static!important;background:none!important;backdrop-filter:none!important;overflow:visible!important;display:none;}
+    .modal-bg.open{display:block!important;}
+    #compBg{display:none!important;}
+    .sheet{box-shadow:none!important;margin:0!important;max-width:100%!important;background:#fff!important;border-radius:0;}
+    .sheet .body{padding:0!important;}
+    .hero{margin-top:0!important;} .gallery{margin-top:0!important;}
+    .rangebtns,.termsedit,#applyTerms,.seg,.chartGuide,.chartTip{display:none!important;}
+    .card,table,.section,.scen,.metric{break-inside:avoid;}
+    @page{margin:14mm;}
+  }
+  .src-badge{font-size:9.5px;font-weight:800;text-transform:uppercase;border-radius:5px;padding:1px 5px;margin-left:6px;} .src-live{background:#e7f0ff;color:#1d4ed8;border:1px solid #c7dbff;} .src-sample{background:#f1f5f9;color:#64748b;border:1px solid #dde3ea;} .src-canopy{background:#eafbf3;color:#0f7a47;border:1px solid #bfe6cf;}
+  .rangebtns{display:inline-flex;gap:5px;} .rangebtns button{border:1px solid #cbd5e1;background:#fff;border-radius:7px;padding:4px 11px;font-size:12px;font-weight:700;color:#475569;cursor:pointer;} .rangebtns button.active{background:var(--brand);color:#fff;border-color:var(--brand);}
+  .capex td .lvl{font-weight:800;font-size:11px;padding:1px 7px;border-radius:6px;} .lvl.high{background:var(--red-bg);color:var(--red);} .lvl.medium{background:var(--amber-bg);color:var(--amber);} .lvl.low{background:var(--green-bg);color:var(--green);}
+  .credit-badge{font-weight:800;border-radius:8px;padding:3px 10px;font-size:13px;} .credit-exc{background:var(--green-bg);color:var(--green);} .credit-good{background:#e7f0ff;color:#1d4ed8;} .credit-fair{background:var(--amber-bg);color:var(--amber);} .credit-poor{background:var(--red-bg);color:var(--red);} .credit-unknown{background:#f1f5f9;color:#94a3b8;}
+  .wf{font-size:13.5px;} .wf .line{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #eef1f5;} .wf .line.tot{border-top:2px solid #e2e8f0;border-bottom:none;font-weight:800;margin-top:4px;padding-top:8px;} .wf .amt{font-variant-numeric:tabular-nums;}
+  .termsedit{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:12px;} @media(max-width:640px){.termsedit{grid-template-columns:1fr 1fr;}}
+  .termsedit label{display:block;font-size:11px;color:#475569;font-weight:600;margin-bottom:3px;white-space:nowrap;} .termsedit input,.termsedit select{width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;font:inherit;}
+</style>
+</head>
+<body>
+<header>
+  <div class="title">VAB — Acquisition Deal Analyzer</div>
+  <div class="sub">Sale-leaseback / buyback underwriting · property + borrower + insurance intelligence · RealEstateAPI · Canopy Connect · CIC tri-merge credit · US Census</div>
+</header>
+<div class="wrap">
+  <div class="banner"><b>Review prototype — runs entirely in your browser.</b> Scoring mirrors the production Rust <code>deal-analyzer</code>.
+    Source badges: <span class="src-badge src-live">live</span> RealEstateAPI / Census, <span class="src-badge src-canopy">canopy</span> Canopy Connect (insurance + condition),
+    <span class="src-badge src-sample">sample</span> representative seed for this review. Estimated basis is badged <span class="est">est</span>.</div>
+  <div class="tabs">
+    <button class="tab active" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="pipeline">Pipeline</button>
+    <button class="tab" data-tab="new">New Analysis</button>
+    <button class="tab" data-tab="bulk">Bulk Import</button>
+    <button class="tab" data-tab="template">Deal Template</button>
+    <button class="tab" data-tab="assumptions">Assumptions</button>
+    <button class="tab" data-tab="lenders">Lenders</button>
+  </div>
+
+  <section class="panel active" id="panel-overview">
+    <div id="overviewBody"></div>
+  </section>
+
+  <section class="panel" id="panel-pipeline">
+    <div class="cards" id="summary"></div>
+    <div class="card" id="portfolioMap" style="margin-bottom:18px;"></div>
+    <div class="toolbar">
+      <select id="filterRec"><option value="">All recommendations</option><option value="proceed">Proceed</option><option value="conditional">Conditional</option><option value="pass">Pass</option><option value="insufficient_data">Insufficient data</option></select>
+      <button class="btn ghost" id="compareBtn" disabled>Compare (0)</button>
+      <span class="note" id="count"></span>
+    </div>
+    <table><thead><tr><th style="width:30px"></th><th class="sortable" data-k="address">Property</th><th>Bd/Ba</th><th class="sortable" data-k="recommendation">Recommendation</th><th class="num sortable" data-k="market_value">Market</th><th class="num sortable" data-k="buyback_price">Buyback</th><th class="num sortable" data-k="monthly_rent">Rent/mo</th><th class="num sortable" data-k="equity_cushion_pct">Cushion</th><th class="num sortable" data-k="tenyr">10-yr value</th><th class="num sortable" data-k="risk_score">Risk</th></tr></thead><tbody id="pipelineBody"></tbody></table>
+    <div class="note">Click any row for the full property dossier — value graph, comps, borrower, insurance, CapEx forecast &amp; income projection.</div>
+  </section>
+
+  <section class="panel" id="panel-new">
+    <div class="grid2">
+      <div>
+        <div class="card" style="margin-bottom:16px;"><h3>Property</h3><div class="formgrid">
+          <label class="field" style="grid-column:1/3;"><span>Address</span><input type="text" id="f_address" placeholder="182 Raintree Rd"></label>
+          <label class="field"><span>City</span><input type="text" id="f_city"></label><label class="field"><span>State</span><input type="text" id="f_state" maxlength="2"></label>
+          <label class="field"><span>ZIP</span><input type="text" id="f_zip"></label><label class="field"><span>Market value ($)</span><input type="number" id="f_market"></label>
+        </div><div class="note">In production these auto-fill from RealEstateAPI by address.</div></div>
+        <div class="card"><h3>Deal terms <span class="note">(blank = use standard template)</span></h3><div class="formgrid">
+          <label class="field"><span>Sale price / contract ($)</span><input type="number" id="t_sale"></label>
+          <label class="field"><span>Existing loan balance ($)</span><input type="number" id="t_loan"></label>
+          <label class="field"><span>Our purchase / basis ($)</span><input type="number" id="t_basis"></label>
+          <label class="field"><span>Year-2 buyback ($)</span><input type="number" id="t_buyback"></label>
+          <label class="field"><span>Option fee ($) <span class="note">— % structuring on the dossier</span></span><input type="number" id="t_option"></label>
+          <label class="field"><span>Other fees ($)</span><input type="number" id="t_fees"></label>
+          <label class="field"><span>Monthly rent ($)</span><input type="number" id="t_rent"></label>
+          <label class="field"><span>Lease term (months)</span><input type="number" id="t_term" placeholder="24"></label>
+        </div><div style="margin-top:6px;display:flex;gap:10px;"><button class="btn" id="analyzeBtn">Analyze</button><button class="btn dark" id="saveBtn">Save to pipeline</button></div></div>
+      </div>
+      <div class="card"><h3>Analysis</h3><div id="newResult"><p class="note">Enter the property and terms, then click <b>Analyze</b>.</p></div></div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-bulk">
+    <div class="row-between"><div class="seg"><button class="active" id="fmtCsv">CSV (spreadsheet)</button><button id="fmtJson">JSON</button></div><button class="btn ghost" id="loadSample">Load Afford sample</button></div>
+    <p class="note" id="bulkHelp">Paste rows from the Afford portfolio sheet. First row = headers (e.g. <code>Client Name, Address, Email, Year 2 Buyback</code>).</p>
+    <textarea id="bulkText"></textarea>
+    <div style="margin-top:10px;display:flex;gap:10px;align-items:center;"><button class="btn" id="bulkImport">Import &amp; analyze</button><span id="bulkMsg"></span></div>
+  </section>
+
+  <section class="panel" id="panel-template">
+    <div class="card" style="max-width:560px;"><h3>Standard deal terms template</h3>
+      <p class="note" style="margin-top:0;">The default sale-leaseback structure. Applied to any new or imported deal where a term is left blank. Each deal can still be modified individually on its dossier.</p>
+      <div class="formgrid">
+        <label class="field"><span>Funding as % of buyback (basis)</span><input type="number" step="1" id="tpl_fund"></label>
+        <label class="field"><span>Option fee (% of basis)</span><input type="number" step="0.5" id="tpl_option"></label>
+        <label class="field"><span>Other fees (% of basis)</span><input type="number" step="0.5" id="tpl_fees"></label>
+        <label class="field"><span>Lease term (months)</span><input type="number" id="tpl_term"></label>
+        <label class="field"><span>Monthly rent (% of value / yr)</span><input type="number" step="0.1" id="tpl_rent"></label>
+        <label class="field"><span>Annual buyback step-up (%)</span><input type="number" step="0.5" id="tpl_stepup"></label>
+      </div>
+      <button class="btn" id="saveTemplate">Save template</button> <span id="tplMsg" class="note"></span>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-assumptions">
+    <div class="card" style="max-width:540px;"><h3>Economic assumptions</h3>
+      <p class="note" style="margin-top:0;">Mirror the engine's <code>DealAssumptions</code> + the basis estimator.</p>
+      <label class="field"><span>Funding ratio (basis = buyback × ratio)</span><input type="number" step="0.01" id="a_ratio"></label>
+      <label class="field"><span>Cost of capital (annual, %)</span><input type="number" step="0.5" id="a_coc"></label>
+      <label class="field"><span>Selling cost on resale (%)</span><input type="number" step="0.5" id="a_sell"></label>
+      <label class="field"><span>Maintenance reserve (annual, % of value)</span><input type="number" step="0.5" id="a_maint"></label>
+      <label class="field"><span>Default hold period (years)</span><input type="number" step="0.5" id="a_hold"></label>
+      <button class="btn" id="applyAssumptions">Apply &amp; re-score</button>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-lenders">
+    <div id="lendersBody"></div>
+  </section>
+</div>
+
+<div class="modal-bg" id="modalBg"><div class="sheet"><div class="closebar"><button class="btn ghost" id="icBtn" style="margin-right:8px;">IC One-Pager</button><button class="btn ghost" id="printBtn" style="margin-right:8px;">🖨 Print / Save PDF</button><button class="x" id="modalX">&times;</button></div><div class="body" id="modalBody"></div></div></div>
+<div class="modal-bg" id="compBg"><div class="sheet compsheet"><div class="closebar"><button class="x" id="compX">&times;</button></div><div class="body" id="compBody"></div></div></div>
+<div class="modal-bg" id="compareBg"><div class="sheet"><div class="closebar"><button class="btn ghost" id="comparePrint" style="margin-right:8px;">🖨 Print / Save PDF</button><button class="x" id="compareX">&times;</button></div><div class="body" id="compareBody"></div></div></div>
+
+<script>
+const CURRENT_YEAR=2026, CURRENT_MONTH=5;
+const ASSUMPTIONS={fundingRatio:0.88,sellingCostPct:0.07,maintenancePctPerYear:0.01,costOfCapitalPctPerYear:0.08,defaultHoldYears:2.0,defaultInsuranceAnnual:1500};
+const TEMPLATE={fundPct:88,optionPct:7,feesPct:9,termMonths:24,rentPctYr:9,stepUpPct:8};
+const CONF={none:0,low:1,medium:2,high:3};
+const round1=x=>Math.round(x*10)/10, clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const STATE_TAX={AL:0.41,AK:1.19,AZ:0.62,AR:0.62,CA:0.74,CO:0.51,CT:2.14,DE:0.57,FL:0.89,GA:0.92,HI:0.28,ID:0.69,IL:2.27,IN:0.85,IA:1.57,KS:1.41,KY:0.86,LA:0.55,ME:1.36,MD:1.09,MA:1.23,MI:1.54,MN:1.12,MS:0.81,MO:0.97,MT:0.84,NE:1.73,NV:0.60,NH:2.18,NJ:2.49,NM:0.80,NY:1.72,NC:0.84,ND:0.98,OH:1.56,OK:0.90,OR:0.97,PA:1.58,RI:1.63,SC:0.57,SD:1.31,TN:0.71,TX:1.80,UT:0.63,VT:1.90,VA:0.82,WA:0.98,WV:0.58,WI:1.85,WY:0.61,DC:0.56};
+const STATE_INS={AL:2400,AK:1200,AZ:1600,AR:2200,CA:1400,CO:2400,CT:1700,DE:1000,FL:4200,GA:1800,HI:1200,ID:1100,IL:1600,IN:1300,IA:1400,KS:2600,KY:1800,LA:3000,ME:1100,MD:1300,MA:1700,MI:1400,MN:1700,MS:2400,MO:1800,MT:1600,NE:2200,NV:1000,NH:1100,NJ:1300,NM:1500,NY:1600,NC:1700,ND:1600,OH:1200,OK:3200,OR:900,PA:1200,RI:1900,SC:1800,SD:2000,TN:1800,TX:3200,UT:900,VT:1000,VA:1300,WA:1100,WV:1200,WI:1100,WY:1200,DC:1100};
+const DISASTER=new Set(["FL","LA","TX","CA","OK"]);
+
+/* Local landlord–tenant stance by state (representative for this review — confirm
+   current statutes with counsel). "lean" drives the badge; notes flag unique
+   state rules that could affect a sale-leaseback acquisition (esp. equity-
+   purchase / foreclosure-rescue statutes that give distressed sellers rescission
+   rights). Blank/unknown states fall back to _default. */
+const STATE_LEGAL={
+  _default:{lean:"Balanced",eviction:"Eviction timeline and notice periods vary — verify county rules.",notes:["No state profile loaded — confirm landlord-tenant act, eviction timeline, and any foreclosure-rescue / equity-purchase statute before close."]},
+  MO:{lean:"Landlord-friendly",eviction:"Rent-and-possession actions move fast (often 3–5 weeks); no statewide grace period required.",notes:["No statewide rent control (preempted).","Security-deposit cap of 2 months; return within 30 days.","Distressed-seller sale-leasebacks can trip Missouri Merchandising Practices Act scrutiny — document fair value + no misrepresentation."]},
+  TN:{lean:"Landlord-friendly",eviction:"Detainer warrant ~2–4 weeks; URLTA applies in larger counties only.",notes:["No rent control (preempted statewide).","14-day notice for nonpayment under URLTA counties.","Strong growth corridor — verify the buyback isn't above a rising market."]},
+  FL:{lean:"Landlord-friendly",eviction:"3-day notice for nonpayment; uncontested eviction often 3–4 weeks.",notes:["Rent control prohibited by statute.","No limit on security deposit amount.","High insurance + reinsurance cost is the real risk lever here, not tenant law.","Equity-purchase of homes in/near foreclosure is regulated — written contract + cancellation rights may apply."]},
+  KS:{lean:"Landlord-friendly",eviction:"3-day notice; eviction commonly 2–4 weeks.",notes:["No rent control.","Security deposit capped at 1 month (1.5 if furnished).","Older housing stock common — confirm lender age limits don't block financing."]},
+  IN:{lean:"Landlord-friendly",eviction:"10-day notice for nonpayment; eviction typically 3–6 weeks.",notes:["No rent control; broad landlord remedies.","Limited habitability case law relative to tenant-friendly states.","Population-declining micro-markets — weight resale exit carefully."]},
+  NC:{lean:"Landlord-friendly",eviction:"Summary ejectment via magistrate court; ~3–5 weeks.",notes:["No rent control.","Late-fee cap (~5% / $15).","Coastal insurance + wind pool exposure in some counties."]},
+  VA:{lean:"Balanced (landlord-leaning)",eviction:"Unlawful detainer ~4–8 weeks; VRLTA governs most rentals.",notes:["No rent control, but VRLTA adds tenant procedural protections.","Required written rental agreements + maintenance duties.","Confirm locality has no source-of-income or just-cause overlay."]},
+  MI:{lean:"Balanced",eviction:"~3–6 weeks; Detroit has additional tenant protections.",notes:["Detroit: right-to-counsel program + stricter code enforcement / rental registration.","Distressed Detroit values can fall below buyback — underwrite resale conservatively.","Truth-in-renting act governs lease terms."]},
+  CT:{lean:"Tenant-friendly",eviction:"Summary process can run 1–3 months; mediation common.",notes:["Stronger tenant defenses + longer timelines raise carrying cost.","Security-deposit limits (2 months; 1 if 62+).","Build extra hold-period reserve into the model."]},
+  AZ:{lean:"Landlord-friendly",eviction:"5-day notice for nonpayment; eviction often 2–3 weeks.",notes:["Rent control prohibited.","Arizona Residential Landlord and Tenant Act is relatively landlord-favorable.","Heat/cooling habitability obligations in summer."]},
+  GA:{lean:"Landlord-friendly",eviction:"Dispossessory ~2–4 weeks; no required cure period for nonpayment.",notes:["No rent control.","Residential Mortgage Fraud Act — keep sale-leaseback valuation + disclosures clean for distressed sellers."]},
+  TX:{lean:"Landlord-friendly",eviction:"3-day notice; eviction commonly 3 weeks.",notes:["No rent control (preempted).","Fast, predictable eviction process.","Property-tax + insurance load is the main cost driver."]},
+  CA:{lean:"Tenant-friendly",eviction:"Just-cause + long timelines; eviction often 2–4+ months.",notes:["Statewide rent cap + just-cause (AB 1482).","⚠ Home Equity Sales Contract Act (Civ. Code §1695): sale-leasebacks with owners in foreclosure require a specific contract, a 5-day right to cancel, and carry steep penalties — legal review mandatory.","High carrying cost on any contested exit."]},
+  NY:{lean:"Tenant-friendly",eviction:"Lengthy; HSTPA protections; months-long timelines.",notes:["Strong rent-regulation regime in many areas.","Long eviction timelines materially raise carrying cost.","Treat as low priority unless legal + ops capacity exists."]},
+  NJ:{lean:"Tenant-friendly",eviction:"Anti-Eviction Act limits grounds; timelines long.",notes:["Just-cause eviction statewide.","Higher procedural burden + reserves required."]},
+  OH:{lean:"Landlord-friendly",eviction:"3-day notice; eviction ~3–5 weeks.",notes:["No rent control.","Reasonable landlord remedies; verify local code enforcement."]},
+  PA:{lean:"Balanced",eviction:"10–15 day notice; eviction ~1–2 months.",notes:["No statewide rent control (Philadelphia has added tenant protections).","Confirm city-level just-cause / good-cause rules."]},
+};
+
+/* Lenders we work with for this product + their requirements. A BLANK field
+   means NO requirement (the lender doesn't care about that parameter). */
+let LENDERS=[
+  {name:"Kiavi (DSCR rental)",            states:[],                          loanMin:75000, loanMax:2000000, maxLTV:80, minDSCR:1.10, minReserveMonths:6, maxAge:null, notes:"Interest-only DSCR; condition C4 or better; nationwide."},
+  {name:"Lima One Capital",               states:[],                          loanMin:50000, loanMax:null,    maxLTV:75, minDSCR:1.20, minReserveMonths:6, maxAge:100,  notes:"Rental30 program; tighter DSCR."},
+  {name:"Heartland Hard Money",           states:[],                          loanMin:30000, loanMax:250000,  maxLTV:65, minDSCR:null, minReserveMonths:null, maxAge:null, notes:"Asset-based — no DSCR / reserve test, but lower LTV."},
+  {name:"Sunbelt Bridge Capital",         states:["FL","TX","AZ","GA","NC","SC"], loanMin:100000, loanMax:null, maxLTV:78, minDSCR:1.15, minReserveMonths:3, maxAge:60, notes:"Sunbelt only; newer stock."},
+  {name:"Veterans Community CU (regional)",states:["MO","KS","TN","OK"],       loanMin:40000, loanMax:400000,  maxLTV:70, minDSCR:1.00, minReserveMonths:3, maxAge:null, notes:"Mission lender; lower max LTV, no age limit."},
+];
+
+function areaForState(state,conf){const st=(state||"").toUpperCase();const a={population_trend:"unknown",population_cagr_pct:null,home_price_trend:"unknown",home_price_yoy_pct:null,rent_trend:"unknown",property_tax_rate_pct:STATE_TAX[st]??null,property_tax_trend:"unknown",insurance_annual_est:STATE_INS[st]??null,insurance_trend:DISASTER.has(st)?"rising":"unknown",school_rating:null,school_trend:"unknown",litigation_risk:"unknown",data_confidence:(STATE_TAX[st]!=null?"low":"none")};if(conf)a.data_confidence=conf;return a;}
+function buildArea(d){const a=areaForState(d.state,d.enrich&&d.enrich.data_confidence);const e=d.enrich||{};if(e.population_trend)a.population_trend=e.population_trend;if(e.population_cagr_pct!=null)a.population_cagr_pct=e.population_cagr_pct;if(e.home_price_trend)a.home_price_trend=e.home_price_trend;if(e.home_price_yoy!=null)a.home_price_yoy_pct=e.home_price_yoy;if(e.rent_trend)a.rent_trend=e.rent_trend;if(e.school_rating!=null)a.school_rating=e.school_rating;if(e.school_trend)a.school_trend=e.school_trend;if(e.insurance_trend)a.insurance_trend=e.insurance_trend;return a;}
+
+function costBasis(t){if(t.capital_deployed!=null)return{v:t.capital_deployed,est:false};if(t.sale_price!=null)return{v:t.sale_price+(t.closing_costs||0),est:!!t._sale_est};if(t.contract_purchase_price!=null)return{v:t.contract_purchase_price+(t.closing_costs||0),est:false};if(t.net_proceeds_to_seller!=null)return{v:t.net_proceeds_to_seller+(t.closing_costs||0)+(t.mortgage_payoff||0),est:false};const bb=buyback(t);if(bb!=null)return{v:round1(bb*ASSUMPTIONS.fundingRatio),est:true};return{v:null,est:false};}
+function buyback(t){return t.buyback_price_y2??t.buyback_price_y1??null;}
+// Option fee: a flat cash amount, or a % of the sale price / loan balance / buyback.
+function optionFee(t){if(!t)return 0;if(t.option_fee_mode==="pct"&&t.option_fee_pct!=null){const base=t.option_fee_basis==="loan_balance"?t.loan_balance:(t.option_fee_basis==="buyback"?buyback(t):(t.sale_price??t.capital_deployed));return base!=null?Math.round(base*t.option_fee_pct/100):0;}return t.option_fee||0;}
+function holdYears(t){return(t.lease_term_months&&t.lease_term_months>0)?t.lease_term_months/12:ASSUMPTIONS.defaultHoldYears;}
+function upfront(t){return optionFee(t)+(t.total_fees||0);}
+function rentCollected(t,y){return t.monthly_rent?t.monthly_rent*Math.round(y*12):0;}
+function carrying(value,basis,area,years){const v=value??basis;const tax=(area.property_tax_rate_pct!=null)?v*area.property_tax_rate_pct/100:0;const ins=area.insurance_annual_est??ASSUMPTIONS.defaultInsuranceAnnual;const maint=v*ASSUMPTIONS.maintenancePctPerYear;const cap=basis*ASSUMPTIONS.costOfCapitalPctPerYear;return(tax+ins+maint+cap)*years;}
+function scenario(label,cashIn,basis,carry,years){const cashOut=basis+carry,net=cashIn-cashOut;const roi=basis>0?round1(net/basis*100):null;const ann=(roi!=null&&years>0)?round1(roi/years):null;return{label,cash_in:cashIn,cash_out:cashOut,net_profit:net,roi_pct:roi,annualized_roi_pct:ann,profitable:net>0};}
+
+function analyze(input){
+  const t=input.terms||{},p=input.property||{},area=input.area||{};
+  const bi=costBasis(t),basis=bi.v;const value=(p.market_value!=null)?p.market_value:null;const bb=buyback(t),years=holdYears(t);
+  let cushion=null,b2v=null,repurchase=null,resale=null;
+  // Equity cushion = market vs the figure we choose to measure exposure against
+  // (default = our capital deployed; can be sale price or loan balance per deal).
+  const cushionRef=t.cushion_ref==="sale_price"?(t.sale_price??basis):(t.cushion_ref==="loan_balance"?(t.loan_balance??basis):basis);
+  if(cushionRef!=null&&value!=null&&value>0)cushion=round1((value-cushionRef)/value*100);
+  if(bb!=null&&value!=null&&value>0)b2v=round1(bb/value*100);
+  if(basis!=null&&bb!=null)repurchase=scenario("repurchase",upfront(t)+rentCollected(t,years)+bb,basis,carrying(value,basis,area,years),years);
+  if(basis!=null&&value!=null){const nr=value-value*ASSUMPTIONS.sellingCostPct;resale=scenario("default_resale",upfront(t)+rentCollected(t,years)+nr,basis,carrying(value,basis,area,years),years);}
+  let risk=0,benefit=0;const factors=[],warnings=[];
+  const R=(c,l,pp,d)=>{risk+=pp;factors.push({code:c,label:l,kind:"risk",points:pp,detail:d});};
+  const B=(c,l,pp,d)=>{benefit+=pp;factors.push({code:c,label:l,kind:"benefit",points:pp,detail:d});};
+  if(cushion!=null){if(cushion<0)R("underwater","Underwater on default",35,`Our basis exceeds market value by ${(-cushion).toFixed(1)}% — a default leaves us holding an asset worth less than we put in`);else if(cushion<10)R("thin_cushion","Thin equity cushion",20,`Only ${cushion.toFixed(1)}% equity cushion — little room for error on a forced sale`);else if(cushion<20)R("modest_cushion","Modest equity cushion",10,`${cushion.toFixed(1)}% equity cushion over our basis`);else if(cushion>=35)B("strong_cushion","Strong equity cushion",22,`${cushion.toFixed(1)}% equity cushion — collateral well covers our basis even on a default`);else B("adequate_cushion","Adequate equity cushion",12,`${cushion.toFixed(1)}% equity cushion over our basis`);}
+  if(b2v!=null){if(b2v>105)R("buyback_above_market","Buyback exceeds market",25,`Buyback is ${b2v.toFixed(0)}% of market value — occupant would overpay to repurchase; expect a walk-away and resale loss`);else if(b2v>95)R("buyback_near_market","Buyback near market",10,`Buyback is ${b2v.toFixed(0)}% of market value — weak incentive to repurchase`);else if(b2v<85)B("buyback_below_market","Strong repurchase incentive",15,`Buyback is only ${b2v.toFixed(0)}% of market value — occupant has real equity to capture`);}
+  if(repurchase){const r=repurchase.annualized_roi_pct;if(r!=null){if(r>=15)B("yield_high","High yield",20,`~${r.toFixed(1)}% annualized return if repurchased`);else if(r>=10)B("yield_good","Solid yield",12,`~${r.toFixed(1)}% annualized return if repurchased`);else if(r>=6)B("yield_modest","Modest yield",6,`~${r.toFixed(1)}% annualized return if repurchased`);else if(r<0)R("yield_negative","Negative yield",15,`~${r.toFixed(1)}% annualized return even if repurchased — the structure loses money`);}}
+  if(resale){resale.profitable?B("resale_safe","Profitable on default",10,"Even if the occupant walks, reselling at market clears our basis and costs"):R("resale_loss","Loss on default",12,"If the occupant walks, a market resale does not recover our basis and costs");}
+  if(p.pre_foreclosure)R("pre_foreclosure","Pre-foreclosure",18,"Property is in pre-foreclosure");
+  if(p.auction)R("auction","Auction",18,"Property is scheduled for auction");
+  if(p.has_liens)R("liens","Liens on title",10,"Outstanding liens recorded against the property");
+  if(p.in_flood_zone)R("flood_zone","Flood zone",10,"Property sits in a flood zone");
+  if(p.vacant)R("vacant","Vacant",8,"Property is currently vacant");
+  if(area.population_trend==="falling")R("pop_falling","Population declining",12,"Area population is shrinking — softer demand and weaker future resale");else if(area.population_trend==="rising")B("pop_rising","Population growing",12,"Area population is growing — stronger demand supports value and rent");
+  if(area.home_price_trend==="falling")R("price_falling","Home prices falling",12,"Local home prices are declining — the equity cushion erodes");else if(area.home_price_trend==="rising")B("price_rising","Home prices rising",10,"Local home prices are rising — the cushion grows");
+  if(area.rent_trend==="falling")R("rent_falling","Rents falling",6,"Local rents are declining");else if(area.rent_trend==="rising")B("rent_rising","Rents rising",6,"Local rents are rising");
+  if(area.property_tax_trend==="rising")R("tax_rising","Property taxes rising",5,"Property taxes trending up");
+  if(area.insurance_trend==="rising")R("insurance_rising","Insurance rising",6,"Insurance premiums trending up");
+  if(area.school_rating!=null&&area.school_rating<4)R("schools_weak","Weak schools",5,`Schools rate ${area.school_rating.toFixed(1)}/10`);else if(area.school_rating!=null&&area.school_rating>=7)B("schools_strong","Strong schools",6,`Schools rate ${area.school_rating.toFixed(1)}/10`);
+  if(area.school_trend==="falling")R("schools_declining","Schools declining",5,"School quality trending down");
+  if(area.litigation_risk==="rising")R("litigation","High litigation risk",8,"Elevated landlord-tenant litigation risk");
+  const b=input.borrower;
+  if(b){
+    if(b.credit_score!=null){const s=b.credit_score;
+      if(s>=700)B("credit_strong","Strong borrower credit",8,`Credit ${s} — likely to qualify to refinance/repurchase at the buyback`);
+      else if(s>=640)B("credit_fair","Fair borrower credit",3,`Credit ${s} — has a path to qualify, with seasoning`);
+      else if(s<580)R("credit_poor","Poor borrower credit",8,`Credit ${s} — unlikely to qualify to repurchase; expect a hold/resale outcome`);
+      else R("credit_weak","Sub-prime borrower credit",3,`Credit ${s} — repurchase financing is a stretch`);}
+    if(b.estimated_dti_pct!=null){const dd=b.estimated_dti_pct;if(dd>45)R("dti_high","High debt-to-income",6,`~${dd.toFixed(0)}% housing DTI — thin capacity to carry/repurchase`);else if(dd<=36&&dd>0)B("dti_low","Comfortable DTI",3,`~${dd.toFixed(0)}% housing DTI`);}
+    if(b.bankruptcy)R("bankruptcy","Bankruptcy on file",6,"A bankruptcy on file lengthens the road back to mortgage qualification");
+    if(b.intent){const i=b.intent.toLowerCase();if(i.includes("sell"))R("intent_sell","Intends to sell",2,"Occupant intends to sell rather than repurchase — plan for a resale exit");else if(i.includes("repurchase")||i.includes("refinance")||i.includes("buyback")||i.includes("mortgage")||i.includes("remortgage"))B("intent_repurchase","Intends to repurchase",4,"Occupant intends to refinance/repurchase — aligned with the buyback exit");}
+  }
+  let conf=Math.min(CONF[p.avm_confidence||"none"],CONF[area.data_confidence||"none"]);
+  if(conf===CONF.none&&value!=null)conf=CONF.low;
+  const hasAll=basis!=null&&value!=null&&bb!=null;if(!hasAll)conf=Math.min(conf,CONF.low);
+  if(conf<=CONF.low){R("data_confidence","Thin data",10,"Key inputs are missing or low-confidence — verify");warnings.push("Analysis confidence is low; treat the recommendation as directional only");}
+  const riskScore=clamp(risk,0,100),benefitScore=clamp(benefit,0,100);
+  let rec;
+  if(value==null||(basis==null&&bb==null))rec="insufficient_data";
+  else if(value!=null&&basis!=null&&value<basis)rec="pass";
+  else if((p.pre_foreclosure||p.auction)&&area.home_price_trend==="falling")rec="pass";
+  else if(riskScore>=60)rec="pass";
+  else{const cok=cushion!=null&&cushion>=20,bok=b2v!=null&&b2v<=90;rec=(riskScore<=25&&benefitScore>=40&&(cok||bok)&&conf>=CONF.medium)?"proceed":"conditional";}
+  const level=riskScore<=20?"low":riskScore<=40?"medium":riskScore<=60?"high":"critical";
+  const confName=Object.keys(CONF).find(k=>CONF[k]===conf)||"none";
+  return{recommendation:rec,confidence:confName,risk_score:riskScore,risk_level:level,benefit_score:benefitScore,market_value:value,cost_basis:basis,cost_basis_estimated:bi.est,buyback_price:bb,equity_cushion_pct:cushion,cushion_ref:t.cushion_ref||"capital_deployed",buyback_to_value_pct:b2v,hold_years:years,repurchase_scenario:repurchase,resale_scenario:resale,factors,warnings};
+}
+
+/* ---- Appreciation (1/2/10yr) ---- */
+const LONG_RUN_ANCHOR=3.5;
+function trendPts(t,up,down){return t==="rising"?up:t==="falling"?down:0;}
+function projectAppreciation(p,area){
+  if(p.market_value==null)return null;let hist=null;
+  if(p.last_sale_price&&p.last_sale_year&&p.market_value>0&&p.last_sale_price>0){const yrs=Math.max(1,CURRENT_YEAR-p.last_sale_year);hist=clamp((Math.pow(p.market_value/p.last_sale_price,1/yrs)-1)*100,-8,16);}
+  const drivers=[];const base=hist!=null?(0.6*hist+0.4*LONG_RUN_ANCHOR):LONG_RUN_ANCHOR;
+  if(hist!=null)drivers.push(`Historical CAGR ${hist>=0?'+':''}${hist.toFixed(1)}%/yr (last sale → today), blended 60/40 with the ${LONG_RUN_ANCHOR}% long-run anchor`);else drivers.push(`No prior sale on record — anchored to the ${LONG_RUN_ANCHOR}% long-run national rate`);
+  let momentum=0;const pp=trendPts(area.home_price_trend,1.0,-1.5);if(pp){momentum+=pp;drivers.push(`Local prices ${area.home_price_trend} (${pp>0?'+':''}${pp})`);}
+  if(area.population_cagr_pct!=null){const m=0.5*area.population_cagr_pct;momentum+=m;drivers.push(`Population ${area.population_cagr_pct>=0?'+':''}${area.population_cagr_pct}%/yr (×0.5 = ${m>=0?'+':''}${round1(m)})`);}
+  const rp=trendPts(area.rent_trend,0.4,-0.4);if(rp){momentum+=rp;drivers.push(`Rents ${area.rent_trend} (${rp>0?'+':''}${rp})`);}
+  if(area.school_rating!=null){const sp=area.school_rating>=7?0.3:area.school_rating<4?-0.3:0;if(sp){momentum+=sp;drivers.push(`Schools ${area.school_rating}/10 (${sp>0?'+':''}${sp})`);}}
+  const rate=clamp(base+momentum,-5,13);
+  const proj=y=>{const f=Math.pow(1+rate/100,y);return{value:Math.round(p.market_value*f),gain:Math.round(p.market_value*(f-1)),totalPct:round1((f-1)*100)};};
+  return{annual_rate:round1(rate),historical_cagr:hist!=null?round1(hist):null,market_momentum:round1(momentum),drivers,confidence:hist!=null?"medium":"low",y1:proj(1),y2:proj(2),y10:proj(10)};
+}
+
+/* ---- Value-over-time series (12mo/5/10/20yr) ---- */
+function valueSeries(d,years){
+  const mv=d.property.market_value;if(mv==null)return null;
+  const rate=d.appreciation?d.appreciation.annual_rate/100:0.035;
+  const sale=(d.facts.last_sale_price&&d.facts.last_sale_year)?{price:d.facts.last_sale_price,year:d.facts.last_sale_year}:null;
+  const months=Math.round(years*12);
+  const saleMonthsAgo=sale?Math.max(1,(CURRENT_YEAR-sale.year)*12+CURRENT_MONTH-6):null;
+  const realizedMonthly=(sale&&saleMonthsAgo)?Math.pow(mv/sale.price,1/saleMonthsAgo)-1:null;
+  const anchorMonthly=Math.pow(1+LONG_RUN_ANCHOR/100,1/12)-1;
+  const modeledMonthly=Math.pow(1+rate,1/12)-1;
+  const pts=[];
+  for(let k=months;k>=0;k--){let v;
+    if(sale&&saleMonthsAgo!=null&&k<=saleMonthsAgo)v=mv/Math.pow(1+realizedMonthly,k);
+    else if(sale&&saleMonthsAgo!=null&&k>saleMonthsAgo)v=sale.price/Math.pow(1+anchorMonthly,k-saleMonthsAgo);
+    else v=mv/Math.pow(1+modeledMonthly,k);
+    pts.push({k,v});}
+  return{pts,sale,saleMonthsAgo,rate};
+}
+const CHART_W=680,CHART_PADL=60,CHART_PADR=14;
+function monLabel(k){const d=new Date(CURRENT_YEAR,(CURRENT_MONTH-1)-k,1);return d.toLocaleString('en-US',{month:'short',year:'numeric'});}
+function lineChart(series){
+  const pts=series.pts,n=pts.length,vals=pts.map(p=>p.v);
+  const min=Math.min(...vals)*0.96,max=Math.max(...vals)*1.04;
+  const W=CHART_W,H=240,padL=CHART_PADL,padR=CHART_PADR,padT=16,padB=28,xw=W-padL-padR,yh=H-padT-padB;
+  const X=i=>padL+xw*(i/(n-1)),Y=v=>padT+yh*(1-(v-min)/(max-min||1));
+  const path=pts.map((p,i)=>`${i===0?'M':'L'}${X(i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ');
+  const area=`M${X(0).toFixed(1)},${Y(min).toFixed(1)} `+pts.map((p,i)=>`L${X(i).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ')+` L${X(n-1).toFixed(1)},${Y(min).toFixed(1)} Z`;
+  let grid='';for(let g=0;g<=4;g++){const vv=min+(max-min)*g/4,yy=Y(vv);grid+=`<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W-padR}" y2="${yy.toFixed(1)}" stroke="#eef1f5"/><text x="${padL-8}" y="${(yy+3).toFixed(1)}" text-anchor="end" font-size="10" fill="#94a3b8">${money(vv)}</text>`;}
+  let xlab='';for(let g=0;g<=4;g++){const i=Math.round((n-1)*g/4);const k=pts[i].k;const yr=CURRENT_YEAR-Math.floor((k-CURRENT_MONTH+1)/12);xlab+=`<text x="${X(i).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="10" fill="#94a3b8">${g===4?'Now':yr}</text>`;}
+  let saleMark='';if(series.saleMonthsAgo!=null){const p=pts.find(pp=>pp.k===series.saleMonthsAgo);if(p){const i=pts.indexOf(p);saleMark=`<circle cx="${X(i).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="4" fill="#1d65d8" stroke="#fff" stroke-width="2"/><text x="${X(i).toFixed(1)}" y="${(Y(p.v)-9).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#1d65d8">Sold ${money(p.v)}</text>`;}}
+  const lp=pts[n-1];const cur=`<circle cx="${X(n-1).toFixed(1)}" cy="${Y(lp.v).toFixed(1)}" r="4.5" fill="#0f7a47" stroke="#fff" stroke-width="2"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block"><defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(29,101,216,.18)"/><stop offset="1" stop-color="rgba(29,101,216,0)"/></linearGradient></defs>${grid}<path d="${area}" fill="url(#ag)"/><path d="${path}" fill="none" stroke="#1d65d8" stroke-width="2.2"/>${saleMark}${cur}${xlab}</svg>`;
+}
+
+/* ---- Comps (RealEstateAPI /PropertyComps in production) ---- */
+function seededRand(seed){let h=2166136261;for(const c of String(seed))h=Math.imul(h^c.charCodeAt(0),16777619);return()=>{h+=0x6D2B79F5;let t=Math.imul(h^h>>>15,1|h);t^=t+Math.imul(t^t>>>7,61|t);return((t^t>>>14)>>>0)/4294967296;};}
+function genComps(d){const mv=d.property.market_value;if(!mv)return[];const rnd=seededRand(d.address+d.zip);const beds=d.facts.beds||3,ba=d.facts.baths||2,sqft=d.facts.sqft||1400,yb=d.facts.yearBuilt||1970;const streets=["Oak","Maple","Cedar","Pine","Elm","Birch","Park","Hill"];const out=[];for(let i=0;i<5;i++){const dp=rnd()*0.16-0.08;const price=Math.round(mv*(1+dp)/1000)*1000;const sq=Math.round(sqft*(1+(rnd()*0.2-0.1))/10)*10;const dist=round1(0.2+rnd()*1.6);const mo=Math.floor(rnd()*9);const dt=new Date(CURRENT_YEAR,CURRENT_MONTH-1-mo,1+Math.floor(rnd()*27));out.push({addr:`${100+Math.floor(rnd()*899)} ${streets[Math.floor(rnd()*streets.length)]} ${rnd()>0.5?'St':'Ave'}`,city:d.city,state:d.state,beds:Math.max(1,beds+(rnd()>0.75?(rnd()>0.5?1:-1):0)),baths:ba,sqft:sq,lotAcres:round1((d.facts.lotAcres||0.2)*(0.7+rnd()*0.8)),yearBuilt:yb+Math.floor(rnd()*16-8),price,ppsf:Math.round(price/sq),dist,date:dt.toISOString().slice(0,10),dom:5+Math.floor(rnd()*60),hue:(rnd()*360)|0});}return out.sort((a,b)=>a.dist-b.dist);}
+
+/* ---- Photos (RealEstateAPI MLS in production) ---- */
+function photoSvg(label,hue,kind){const h=hue%360,h2=(hue+30)%360;let s='';
+  if(kind==='ext'||kind===undefined)s=`<rect x='70' y='150' width='260' height='120' fill='hsl(${h},42%,82%)'/><polygon points='60,150 200,80 340,150' fill='hsl(${h2},45%,60%)'/><rect x='150' y='195' width='45' height='75' fill='hsl(${h},35%,55%)'/><rect x='230' y='185' width='55' height='45' fill='hsl(200,60%,88%)'/>`;
+  else if(kind==='living')s=`<rect x='60' y='200' width='280' height='70' rx='10' fill='hsl(${h},30%,72%)'/><rect x='250' y='120' width='100' height='90' fill='hsl(200,55%,86%)'/><rect x='80' y='150' width='70' height='50' fill='hsl(${h2},35%,70%)'/>`;
+  else if(kind==='kitchen')s=`<rect x='60' y='190' width='280' height='30' fill='hsl(${h},25%,60%)'/><rect x='60' y='220' width='280' height='50' fill='hsl(${h},25%,80%)'/><rect x='90' y='120' width='60' height='60' fill='hsl(${h2},30%,72%)'/><rect x='250' y='120' width='60' height='60' fill='hsl(${h2},30%,72%)'/>`;
+  else s=`<rect x='40' y='120' width='320' height='150' fill='hsl(${h},35%,70%)'/><rect x='150' y='160' width='100' height='80' fill='hsl(${h2},40%,55%)'/><path d='M40 200 L360 200' stroke='hsl(${h},20%,55%)' stroke-width='6'/>`;
+  const svg=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='hsl(${h},45%,90%)'/><stop offset='1' stop-color='hsl(${h2},40%,78%)'/></linearGradient></defs><rect width='400' height='300' fill='url(#g)'/>${s}<text x='14' y='286' font-family='Inter,Arial' font-size='13' font-weight='700' fill='hsl(${h},30%,30%)' opacity='0.7'>${label}</text></svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);}
+function galleryFor(d){if(d.photos&&d.photos.length)return d.photos.map((u,i)=>({url:u,label:'Photo '+(i+1)}));const hue=(seededRand(d.address)()*360)|0;return [['Front exterior','ext'],['Living room','living'],['Kitchen','kitchen'],['Aerial / lot','aerial']].map(([l,k])=>({url:photoSvg(l,hue,k),label:l}));}
+
+/* ---- Canopy Connect (insurance + property condition) ---- */
+const INSURERS=["State Farm","Allstate","Progressive","Farmers","Liberty Mutual","Travelers","USAA","Nationwide"];
+function genCanopy(d){
+  if(d.property.market_value==null&&!d.facts.yearBuilt)return null;
+  const rnd=seededRand("canopy"+d.address+d.zip);const yb=d.facts.yearBuilt||1975;
+  const mv=d.property.market_value||140000;
+  const dwelling=Math.round(mv*(0.9+rnd()*0.25)/1000)*1000;
+  const premium=Math.round((STATE_INS[(d.state||'').toUpperCase()]||1500)*(0.85+rnd()*0.5));
+  const roofYear=yb+Math.floor(rnd()*30);const hvacYear=yb+Math.floor(rnd()*28);const whYear=Math.max(yb,CURRENT_YEAR-2-Math.floor(rnd()*16));const applianceYear=Math.max(yb,CURRENT_YEAR-1-Math.floor(rnd()*15));
+  const claims=rnd()>0.7?[{year:CURRENT_YEAR-1-Math.floor(rnd()*5),type:rnd()>0.5?"Wind/hail":"Water damage",paid:Math.round(2000+rnd()*12000)}]:[];
+  return{
+    source:"Canopy Connect",insurer:INSURERS[Math.floor(rnd()*INSURERS.length)],policyType:"HO-3 Homeowners",
+    annualPremium:premium,dwellingCoverage:dwelling,deductible:[1000,1500,2500,5000][Math.floor(rnd()*4)],
+    liability:[100000,300000,500000][Math.floor(rnd()*3)],replacementCost:Math.round(dwelling*1.0),
+    effectiveDate:`${CURRENT_YEAR-1}-${String(1+Math.floor(rnd()*12)).padStart(2,'0')}-01`,
+    roofYear,roofType:["Asphalt shingle","Architectural shingle","Metal"][Math.floor(rnd()*3)],
+    hvacYear,waterHeaterYear:whYear,applianceYear,
+    construction:d.facts.construction||"Wood frame",claims,
+    floodZone:rnd()>0.85,
+  };
+}
+
+/* ---- Component age / unexpected-CapEx forecast ---- */
+const COMPONENTS=[
+  {key:"roof",name:"Roof",life:25,cost:d=>Math.round((d.facts.sqft||1500)*5.5)},
+  {key:"hvac",name:"HVAC system",life:18,cost:()=>8000},
+  {key:"waterHeater",name:"Water heater",life:12,cost:()=>1600},
+  {key:"appliance",name:"Refrigerator / appliances",life:13,cost:()=>2200},
+  {key:"electrical",name:"Electrical panel",life:40,cost:()=>3000},
+  {key:"plumbing",name:"Plumbing",life:55,cost:()=>7000},
+];
+function failureProb(remaining,holdYears){if(remaining==null)return 0;if(remaining<=0)return 0.9;if(remaining<=holdYears)return 0.6;if(remaining<=holdYears+3)return 0.28;if(remaining<=holdYears+7)return 0.12;return 0.04;}
+function capexForecast(d){
+  const holdY=holdYears(d.terms||{});const c=d.canopy||{};const yb=d.facts.yearBuilt;
+  const installYearOf={roof:c.roofYear,hvac:c.hvacYear,waterHeater:c.waterHeaterYear,appliance:c.applianceYear,electrical:yb,plumbing:yb};
+  let expected=0;const rows=COMPONENTS.map(it=>{
+    const iy=installYearOf[it.key]||yb||null;const age=iy?CURRENT_YEAR-iy:null;const remaining=age!=null?it.life-age:null;
+    const prob=failureProb(remaining,holdY);const cost=it.cost(d);const exp=Math.round(cost*prob);expected+=exp;
+    const risk=prob>=0.6?"high":prob>=0.25?"medium":"low";
+    return{name:it.name,installYear:iy,age,life:it.life,remaining,cost,prob,exp,risk};
+  });
+  return{rows,expected:Math.round(expected),holdYears:holdY};
+}
+
+/* ---- Income projection from terms (+ CapEx reserve) ---- */
+function incomeProjection(d){
+  const t=d.terms||{},a=d.analysis,area=d.area||{};const basis=a.cost_basis,value=a.market_value,bb=a.buyback_price,years=a.hold_years;
+  if(basis==null)return null;
+  const optionFee=t.option_fee||0,fees=t.total_fees||0,rent=rentCollected(t,years);
+  const carry=carrying(value,basis,area,years);const capex=capexForecast(d).expected;
+  function build(label,exitProceeds,exitLabel){
+    const incomeLines=[["Option fee",optionFee],["Other fees",fees],["Rent collected ("+Math.round(years*12)+" mo)",rent],[exitLabel,exitProceeds]];
+    const costLines=[["Acquisition basis",-basis],["Carrying costs (tax+ins+maint+capital)",-Math.round(carry)],["Expected unexpected CapEx reserve",-capex]];
+    const income=incomeLines.reduce((s,x)=>s+x[1],0);const cost=costLines.reduce((s,x)=>s+x[1],0);
+    const net=income+cost;const roi=basis>0?round1(net/basis*100):null;const ann=roi!=null&&years>0?round1(roi/years):null;
+    return{label,incomeLines,costLines,net,roi,ann};
+  }
+  const repurchase=bb!=null?build("If occupant repurchases",bb,"Buyback proceeds"):null;
+  const resale=value!=null?build("If occupant walks → we resell",Math.round(value*(1-ASSUMPTIONS.sellingCostPct)),"Net resale proceeds"):null;
+  return{repurchase,resale,capex,years};
+}
+
+/* ============================================================================ SEED DATA */
+let DEALS=[
+ /* ═══ R2-approved · Drake-funded · NEW since first batch (5) ═══ */
+ {client:"James Smith",address:"10309 Cemetery Rd",city:"Wapakoneta",state:"OH",zip:"45895",terms:{capital_deployed:76100,buyback_price_y2:153000,option_fee:6800,total_fees:6800,monthly_rent:1450,lease_term_months:12},property:{market_value:179000,avm_confidence:"medium"},facts:{beds:3,baths:1,sqft:1100,lotAcres:5.0,yearBuilt:1900,type:"SFR + 5 acres",construction:"Wood frame",heating:"Forced air",cooling:"Window",waterSewer:"Well + septic",last_sale_price:85500,last_sale_year:2018},enrich:{rentEstimate:1450,rent_trend:"stable",population_trend:"stable",population_cagr_pct:0.4,school_rating:6,school_trend:"stable",home_price_trend:"rising",home_price_yoy:4.5,data_confidence:"medium"},note:"R2-approved · Title, appraisal, inspection done · Ready to close. 1900 farmhouse on 5 acres; per-county records ~1,100 sqft, 1 bath. Eager to close — calling Betsy daily."},
+ {client:"David Raunch",address:"1181 Cotter Rd",city:"Jefferson City",state:"TN",zip:"37760",terms:{capital_deployed:86700,buyback_price_y2:170000,option_fee:6700,total_fees:6700,monthly_rent:1425,lease_term_months:12},property:{market_value:235000,avm_confidence:"low"},facts:{beds:3,baths:2,sqft:1700,lotAcres:1.0,yearBuilt:1995,type:"SFR",construction:"Brick/vinyl",heating:"Heat pump",cooling:"Central",waterSewer:"Public",last_sale_price:158000,last_sale_year:2019},enrich:{rentEstimate:1425,rent_trend:"rising",population_trend:"rising",population_cagr_pct:1.6,school_rating:6,school_trend:"rising",home_price_trend:"rising",home_price_yoy:6.5},note:"At closing table · All items done. Drake R2 sheet (Jun 2) only — full Drake fee structure not yet formalized in the May 21 property-loan sheet. Neighbor comps on Cotter Rd (1156, 1188, 1191) are smaller older homes; verify the $235k Drake appraisal."},
+ {client:"Vicki Pariseau",address:"56 Scott Horn Rd",city:"Wellston",state:"OH",zip:"45692",terms:{capital_deployed:86700,buyback_price_y2:175000,option_fee:7500,total_fees:7500,monthly_rent:1400,lease_term_months:12},property:{market_value:230000,avm_confidence:"low"},facts:{beds:3,baths:2,sqft:1700,lotAcres:2.0,yearBuilt:1985,type:"SFR + acreage"},enrich:{rentEstimate:1400,rent_trend:"stable",population_trend:"falling",population_cagr_pct:-0.3,school_rating:5,school_trend:"stable",home_price_trend:"stable",home_price_yoy:3.0,data_confidence:"low"},note:"R2-approved · awaiting final appraisal, title, inspection. Rural Jackson County OH; specific property record not retrievable from public databases — $230k from Drake R2 sheet."},
+ {client:"Jerry Scott",address:"104 Lexington Dr",city:"Scottsboro",state:"AL",zip:"35769",terms:{capital_deployed:97300,buyback_price_y2:185000,option_fee:8200,total_fees:8200,monthly_rent:1500,lease_term_months:12},property:{market_value:200000,avm_confidence:"medium"},facts:{beds:3,baths:1.5,sqft:1708,lotAcres:0.3,yearBuilt:1972,type:"SFR",construction:"Brick",heating:"Central",cooling:"Central",waterSewer:"Public",last_sale_price:115000,last_sale_year:2019},enrich:{rentEstimate:1500,rent_trend:"rising",population_trend:"stable",population_cagr_pct:0.6,school_rating:5,school_trend:"stable",home_price_trend:"rising",home_price_yoy:4.5,data_confidence:"medium"},note:"R2-approved · Docs received Jun 1 (Drake/Afford). Spokeo confirms 1,708 sqft 1972 build. Aerospace third-shift employee. Original Afford 'Property #1' — value $230k, purchase target $115k."},
+ {client:"Brenda O'Byrne",address:"1251 Nottingham Rd",city:"Grosse Pointe Park",state:"MI",zip:"48230",terms:{capital_deployed:148180,buyback_price_y2:260000,option_fee:11560,total_fees:11560,monthly_rent:1750,lease_term_months:12},property:{market_value:300000,avm_confidence:"low"},facts:{beds:3,baths:1,sqft:1711,lotAcres:0.1,yearBuilt:1928,type:"SFR",construction:"Brick",heating:"Forced air",cooling:"None",waterSewer:"Public",last_sale_price:110000,last_sale_year:2024},enrich:{rentEstimate:1750,rent_trend:"stable",population_trend:"stable",population_cagr_pct:0.2,school_rating:8,school_trend:"stable",home_price_trend:"rising",home_price_yoy:4.0,data_confidence:"low"},note:"R2-approved BUT 80%-rent margin is −$204/mo at low end · structurally tight. Redfin confirms 1,711 sqft, 1 bath, last sold $110k Jul 2024 — the $300k Drake appraisal is a large step up from the recent arm's-length sale; verify before funding. Grosse Pointe Park has strong schools but the recent comp gap is the risk."},
+
+ /* ═══ R2-approved · Drake-funded · Originally in first batch (7) ═══ */
+ {client:"Vernon Pinson",address:"182 Raintree Rd",city:"Buffalo",state:"MO",zip:"65622",terms:{capital_deployed:54900,buyback_price_y2:108006,option_fee:5400,total_fees:5400,monthly_rent:925,lease_term_months:12},property:{market_value:200000,avm_confidence:"medium"},facts:{beds:3,baths:2,sqft:2145,lotAcres:4.0,yearBuilt:1957,type:"Manufactured / SFR",construction:"Manufactured",heating:"Forced air",cooling:"Central",waterSewer:"Well + septic",last_sale_price:142000,last_sale_year:2021},enrich:{rentEstimate:1800,rent_trend:"stable",population_trend:"stable",population_cagr_pct:0.2,school_rating:5,school_trend:"stable",home_price_trend:"rising",home_price_yoy:4.0,data_confidence:"medium"},note:"R2-approved. Drake refinance: $50k principal → $55.4k total loan. Web comps suggest ~$114k vs Drake appraisal $200k — verify the value."},
+ {client:"Patrick Tomlinson",address:"1319 Southport Rd",city:"Mount Pleasant",state:"TN",zip:"38474",terms:{capital_deployed:123800,buyback_price_y2:87228,option_fee:9950,total_fees:9950,monthly_rent:1775,lease_term_months:12},property:{market_value:300000,avm_confidence:"medium"},facts:{beds:3,baths:2,sqft:1700,lotAcres:1.1,yearBuilt:1995,type:"SFR",construction:"Brick/vinyl",heating:"Heat pump",cooling:"Central",waterSewer:"Public",last_sale_price:158000,last_sale_year:2018},enrich:{rentEstimate:1775,rent_trend:"rising",population_trend:"rising",population_cagr_pct:1.8,school_rating:6,school_trend:"rising",home_price_trend:"rising",home_price_yoy:6.5,data_confidence:"medium"},note:"Drake-funded · Wants to sell (per Betsy/portfolio sheet). Drake appraisal $300k (up from prior $266k estimate). Strong TN growth corridor."},
+ {client:"Harold Brock",address:"4971 SW 45th St",city:"Ocala",state:"FL",zip:"34474",terms:{capital_deployed:102600,buyback_price_y2:225000,option_fee:8550,total_fees:8550,monthly_rent:2000,lease_term_months:12},property:{market_value:237000,avm_confidence:"medium"},facts:{beds:3,baths:3,sqft:1584,lotAcres:0.06,yearBuilt:2006,type:"Townhouse",construction:"Block/stucco",heating:"Central",cooling:"Central",waterSewer:"Public",last_sale_price:171000,last_sale_year:2019},enrich:{rentEstimate:2000,rent_trend:"rising",population_trend:"rising",population_cagr_pct:2.6,school_rating:5,school_trend:"stable",home_price_trend:"rising",home_price_yoy:5.0,data_confidence:"medium"},note:"Confirmed direct sale (Betsy, ready to discuss). Drake-funded. Original Afford Y2 buyback ($225k) was 95% of value — extreme. FL insurance + reinsurance cost is the real risk lever."},
+ {client:"Shawna Parris",address:"629 Cedar Cir",city:"Eaton",state:"OH",zip:"45320",terms:{capital_deployed:93325,buyback_price_y2:86269,option_fee:7938,total_fees:7938,monthly_rent:1275,lease_term_months:12},property:{market_value:190200,avm_confidence:"low"},facts:{beds:3,baths:2,sqft:1400,lotAcres:0.25,yearBuilt:1980,type:"SFR"},enrich:{rentEstimate:1275,rent_trend:"stable",population_trend:"stable",population_cagr_pct:0.5,school_rating:5,school_trend:"stable",home_price_trend:"rising",home_price_yoy:3.5,data_confidence:"low"},note:"Drake-funded with $190.2k appraisal (was 'address unverified' in prior pass — Drake now has appraisal on file). 80%-rent margin +$10/mo is borderline. Contact: wrong phone # on file, re-contact required before close."},
+ {client:"Margie Latham",address:"4836 Brookmont Rd",city:"Pulaski",state:"VA",zip:"24301",terms:{capital_deployed:108494,buyback_price_y2:100566,option_fee:9945,total_fees:9945,monthly_rent:1600,lease_term_months:12},property:{market_value:330000,avm_confidence:"medium"},facts:{beds:3,baths:2,sqft:1900,lotAcres:5.09,yearBuilt:1985,type:"SFR + acreage"},enrich:{rentEstimate:1600,rent_trend:"stable",population_trend:"stable",population_cagr_pct:0.3,school_rating:5,school_trend:"stable",home_price_trend:"rising",home_price_yoy:3.0,data_confidence:"medium"},note:"Drake-funded; appraisal $330k confirms owner-claimed value (5.09-ac lot). 80%-rent margin +$48 is borderline. 80% likely re-mortgaging, slight chance of selling. Wants to extend 1 year — raising 3 grandkids until graduation."},
+ {client:"Chad Fontaine",address:"301 N 4th St",city:"Saratoga",state:"AR",zip:"71859",terms:{capital_deployed:70800,buyback_price_y2:65856,option_fee:6450,total_fees:6450,monthly_rent:1350,lease_term_months:12},property:{market_value:150000,avm_confidence:"low"},facts:{beds:3,baths:2,sqft:1300,lotAcres:0.5,yearBuilt:1975,type:"SFR"},enrich:{rentEstimate:1350,rent_trend:"stable",population_trend:"falling",population_cagr_pct:-0.5,school_rating:4,school_trend:"stable",home_price_trend:"stable",home_price_yoy:2.0,data_confidence:"low"},note:"Drake-funded ($150k appraisal supplied by Drake; was 'unverifiable' in prior pass). Wants to extend — wife teacher, he construction PM (unemployed), both ~620 credit, organizing for mortgage."},
+ {client:"Timothy Doan",address:"408 N 49th Ave",city:"Pensacola",state:"FL",zip:"32506",terms:{capital_deployed:145000,buyback_price_y2:143598,option_fee:11350,total_fees:11350,monthly_rent:1825,lease_term_months:12},property:{market_value:295000,avm_confidence:"medium"},facts:{beds:3,baths:1,sqft:1311,lotAcres:0.23,yearBuilt:1961,type:"SFR",construction:"Block",heating:"Central",cooling:"Central",waterSewer:"Public",last_sale_price:55000,last_sale_year:2014},enrich:{rentEstimate:1825,rent_trend:"rising",population_trend:"stable",population_cagr_pct:0.6,school_rating:5,school_trend:"stable",home_price_trend:"rising",home_price_yoy:4.0,data_confidence:"low"},note:"⚠ 80%-rent margin is −$110/mo at low rent · structurally tight. Drake appraisal $295k is a big step up from prior Homefacts ~$88k — verify before funding. FL insurance climbing."},
+
+ /* ═══ First-batch Afford originals · No Drake R2 underwriting yet (8) ═══ */
+ {client:"Seth Teel",address:"764 N Custer St",city:"Wichita",state:"KS",zip:"67203",terms:{buyback_price_y2:106566},property:{market_value:125000,avm_confidence:"low"},facts:{beds:2,baths:1,sqft:1342,lotAcres:0.45,yearBuilt:1939,type:"SFR",construction:"Wood frame",heating:"Forced air",cooling:"Window",waterSewer:"Public",last_sale_price:64700,last_sale_year:2016},enrich:{rentEstimate:1100,rent_trend:"stable",population_trend:"stable",population_cagr_pct:0.3,school_rating:4,school_trend:"stable",home_price_trend:"rising",home_price_yoy:3.5},note:"First-batch original · Needs Drake R2 underwriting. Wants lease-option extension. Market = neighbor Redfin estimate; last sale $64.7k (2016)."},
+ {client:"Amber Jeffers",address:"1045 Rosewood Dr",city:"Peru",state:"IN",zip:"46970",terms:{buyback_price_y2:107993},property:{market_value:125000,avm_confidence:"low"},facts:{beds:3,baths:1,sqft:1104,lotAcres:0.25,yearBuilt:1956,type:"SFR",construction:"Wood frame",heating:"Forced air",cooling:"Central",waterSewer:"Public",last_sale_price:69800,last_sale_year:2017},enrich:{rentEstimate:1050,rent_trend:"stable",population_trend:"falling",population_cagr_pct:-0.4,school_rating:5,school_trend:"stable",home_price_trend:"stable",home_price_yoy:2.0},note:"First-batch original · Needs Drake R2. Couple earns ~$12.5k/mo; wants to sell + build a barndominium (won't re-purchase)."},
+ {client:"Brittany Grimmette",address:"1373 Powers Ave",city:"Holly Hill",state:"FL",zip:"32117",terms:{buyback_price_y2:212179},property:{market_value:207000,avm_confidence:"low"},facts:{beds:3,baths:2,sqft:1270,lotAcres:0.17,yearBuilt:1957,type:"SFR",construction:"Block",heating:"Central",cooling:"Central",waterSewer:"Public",last_sale_price:94614,last_sale_year:2004},enrich:{rentEstimate:1700,rent_trend:"rising",population_trend:"rising",population_cagr_pct:1.2,school_rating:4,school_trend:"stable",home_price_trend:"stable",home_price_yoy:2.5},note:"First-batch original · Needs Drake R2. ⚠ County owner-of-record is George Copp, not Grimmette — verify title. Borrower hospitalized (brain bleed); mom liaising."},
+ {client:"Michael Braxton",address:"317 N 14th St",city:"Wilmington",state:"NC",zip:"28401",terms:{buyback_price_y2:189114},property:{market_value:185000,avm_confidence:"low"},facts:{beds:3,baths:1,sqft:1000,lotAcres:0.12,yearBuilt:1971,type:"SFR",construction:"Wood frame",heating:"Forced air",cooling:"Window",waterSewer:"Public",last_sale_price:105100,last_sale_year:2015},enrich:{rentEstimate:1500,rent_trend:"rising",population_trend:"rising",population_cagr_pct:1.5,school_rating:5,school_trend:"stable",home_price_trend:"rising",home_price_yoy:5.5},note:"First-batch original · Needs Drake R2. Family home + bicycle shop. Divorce in progress — wants 1–2 years to reorganize. 2015 assessed $105k; downtown Wilmington has appreciated."},
+ {client:"Christopher Wright",address:"17293 Stahelin Ave",city:"Detroit",state:"MI",zip:"48219",terms:{buyback_price_y2:177961},property:{market_value:97000,avm_confidence:"low"},facts:{beds:3,baths:1,sqft:1100,lotAcres:0.09,yearBuilt:1949,type:"SFR",construction:"Brick",heating:"Forced air",cooling:"None",waterSewer:"Public",last_sale_price:62000,last_sale_year:2018},enrich:{rentEstimate:1150,rent_trend:"stable",population_trend:"falling",population_cagr_pct:-0.9,school_rating:3,school_trend:"falling",home_price_trend:"stable",home_price_yoy:1.0},note:"First-batch original · Needs Drake R2. ⚠ Buyback well above market — deeply underwater on a default. 700+ credit, owns 3 props. Open to extension or exit funding."},
+ {client:"Michael Weis",address:"97 Chaplin St",city:"Chaplin",state:"CT",zip:"06235",terms:{buyback_price_y2:188288},property:{market_value:180000,avm_confidence:"low"},facts:{beds:4,baths:1.5,sqft:1826,lotAcres:0.9,yearBuilt:1840,type:"SFR (Greek Revival)",construction:"Wood frame",heating:"Oil",cooling:"None",waterSewer:"Well + septic",last_sale_price:165000,last_sale_year:2023},enrich:{rentEstimate:1850,rent_trend:"stable",population_trend:"stable",population_cagr_pct:0.1,school_rating:7,school_trend:"stable",home_price_trend:"stable",home_price_yoy:2.0},note:"First-batch original · Needs Drake R2. 'Needs work, sold as-is, cash only' — condition risk below the AVM. Voicemail full."},
+ {client:"Adam Walker",address:"901 S Santa Ana Dr",city:"Tucson",state:"AZ",zip:"85710",terms:{buyback_price_y2:200946},property:{},facts:{beds:4,baths:2,sqft:2352,lotAcres:0.18,yearBuilt:1968,type:"SFR",construction:"Block",heating:"Central",cooling:"Central",waterSewer:"Public",last_sale_price:138000,last_sale_year:2012},enrich:{rentEstimate:1700,rent_trend:"rising",population_trend:"rising",population_cagr_pct:1.1,school_rating:5,school_trend:"stable",home_price_trend:"rising",home_price_yoy:5.0,data_confidence:"none"},note:"First-batch original · Needs Drake R2. Only a stale 2012 sale (~$138k); no live estimate retrievable. 700+ credit, $2.5k/mo income (Amazon biz); son may join."},
+ {client:"Richard Herbst",address:"2626 Batavia Oakfield Town Rd",city:"Batavia",state:"NY",zip:"14020",terms:{buyback_price_y2:72764},property:{},facts:{},enrich:{data_confidence:"none"},note:"First-batch original · Needs Drake R2. Exact address could not be verified. No status notes on file."},
+
+ /* ═══ Awaiting data · Afford Section 2 pipeline (6) ═══ */
+ {client:"Nelson Cashwell",address:"Address not yet provided by Afford",city:"",state:"",zip:"",terms:{capital_deployed:75000,buyback_price_y2:null},property:{},facts:{type:"Residential + hobby farm"},enrich:{data_confidence:"none"},note:"⚠ Surgery Jun 11 deadline. Afford signed proposal $50k / amount needed $75k (outside Afford's box, inside VAB's). Hobby farm — files taxes under farm with ~$30k revenue + other income. Per Jun 2 Drake call (Gemini notes): 'in a farm area where it's a farm' — Betsy uncertain it's a good fit; other funders flagged location + property-quality concerns. Drive folder shared (1Ne0cMzqT7zojETgxfa338VUnsvW8i4BT, owned by Danny Mazy at Afford) — address + appraisal not yet inside the folder we can access. ACTION: request the address + property docs from Danny."},
+ {client:"Khorren Lally",address:"Address not yet provided by Afford",city:"",state:"",zip:"",terms:{},property:{},facts:{},enrich:{data_confidence:"none"},note:"⚠ Afford portfolio Section 2 'NEW DEALS' — name only on the tracking sheet, NO address / value / R2 / contact in any Afford source (verified against Drive id 1V9oK716_... Section 2). The literal cell in Eliran's portfolio sheet is blank past the name. ACTION: request the property packet from Betsy / Danny before this can move."},
+ {client:"Jimi Camastro",address:"Address not yet provided by Afford",city:"",state:"",zip:"",terms:{},property:{},facts:{},enrich:{data_confidence:"none"},note:"⚠ Afford portfolio Section 2 — name only, no address ever provided. Same blank-row state as Khorren Lally. ACTION: request the packet from Betsy / Danny."},
+ {client:"Michael Johnson",address:"Address not yet provided by Afford",city:"",state:"",zip:"",terms:{},property:{},facts:{},enrich:{data_confidence:"none"},note:"⚠ Afford portfolio Section 2 — name only, no address. (Common name; cannot disambiguate from public records without an address.) ACTION: request the packet from Betsy / Danny."},
+ {client:"Brandon Macherone",address:"Address not yet provided by Afford",city:"",state:"",zip:"",terms:{},property:{},facts:{},enrich:{data_confidence:"none"},note:"⚠ Afford portfolio Section 2 — name only, no address. ACTION: request the packet from Betsy / Danny."},
+ {client:"Tim Aronhalt",address:"Address not yet provided by Afford",city:"",state:"",zip:"",terms:{},property:{},facts:{},enrich:{data_confidence:"none"},note:"⚠ Afford portfolio Section 2 — name only, no address. ACTION: request the packet from Betsy / Danny."},
+ {client:"Richard Herz",address:"Address not yet provided by Afford",city:"",state:"",zip:"",terms:{},property:{},facts:{},enrich:{data_confidence:"none"},note:"⚠ Added to the list per Jun 2 Drake meeting (Gemini transcript): 'we need to add in Richard Herz and Brenda Ourn. This was just in an initial list they gave me.' No address, value, or other data on file yet. ACTION: get the full packet from Betsy."},
+ {client:"Brenda Ourn",address:"Address not yet provided by Afford",city:"",state:"",zip:"",terms:{},property:{},facts:{},enrich:{data_confidence:"none"},note:"⚠ Added to the list per Jun 2 Drake meeting (Gemini transcript) alongside Richard Herz. No address, value, or other data on file yet. ACTION: get the full packet from Betsy."},
+];
+
+/* Real borrower intel from the Afford intake notes (where known) */
+const REAL_BORROWER={
+ "Amber Jeffers":{creditNote:"Husband rebuilding (new card); wife improving",monthlyIncome:12500,employment:"Wife: salon + nursing student · Husband: ~$6k/mo, stable",intent:"Sell & buy land to build a barndominium",reserves:"Moderate"},
+ "Chad Fontaine":{creditScore:620,employment:"Wife teacher · he construction PM (currently unemployed)",intent:"Extend lease to organize for a mortgage",reserves:"Limited"},
+ "Adam Walker":{creditScore:710,monthlyIncome:2500,employment:"Amazon-related business · son (accountant) may co-sign, currently unemployed",intent:"Mortgage / buyback (March)",reserves:"Family may assist"},
+ "Christopher Wright":{creditScore:705,employment:"Owns multiple properties",intent:"Fund exit / possible extension",reserves:"Cards maxed from rehab on another property; to be repaid at sale"},
+ "Seth Teel":{intent:"Extend to a new lease-option to buy"},
+ "Michael Braxton":{intent:"Buyback in 1–2 years",employment:"Owns a bicycle shop",reserves:"Divorce in progress; needs time to organize"},
+ "Margie Latham":{intent:"~80% likely refinance / slight chance of sale",reserves:"Raising 3 grandkids; upgraded sliding doors"},
+ "Brittany Grimmette":{intent:"TBD — timing dependent",reserves:"Hospitalized (brain bleed); mother is point of contact"},
+ "Patrick Tomlinson":{intent:"Wants to sell"},
+ "Harold Brock":{intent:"Confirmed interest — direct sale, ready to discuss"},
+};
+function creditBand(score){if(score==null)return{label:"Unknown",cls:"credit-unknown"};if(score>=740)return{label:score+" · Excellent",cls:"credit-exc"};if(score>=680)return{label:score+" · Good",cls:"credit-good"};if(score>=620)return{label:score+" · Fair",cls:"credit-fair"};return{label:score+" · Poor",cls:"credit-poor"};}
+// CIC tri-merge: three bureau scores; the mortgage-representative score is the
+// MIDDLE of the three (matches the production credit-client parse_report).
+function triMerge(base,rnd){
+  const lo=clamp(Math.round(base-(5+rnd()*16)),300,850);
+  const hi=clamp(Math.round(base+(5+rnd()*16)),300,850);
+  const vals=[lo,base,hi],off=Math.floor(rnd()*3),rot=i=>vals[(i+off)%3];
+  return{equifax:rot(0),experian:rot(1),transunion:rot(2),mid:base};
+}
+function genBorrower(d){
+  const rnd=seededRand("borrower"+d.client);const real=REAL_BORROWER[d.client]||{};
+  const score=real.creditScore!=null?real.creditScore:(580+Math.floor(rnd()*180));
+  const income=real.monthlyIncome!=null?real.monthlyIncome:(3000+Math.floor(rnd()*7000));
+  const housingTarget=d.terms&&d.terms.monthly_rent?d.terms.monthly_rent:Math.round((d.property.market_value||140000)*0.006);
+  const dti=Math.round((housingTarget/income)*100);
+  const effScore=real.creditScore!=null?real.creditScore:score;
+  const hasReal=Object.keys(real).length>0;
+  const repScore=real.creditScore!=null?real.creditScore:(real.creditNote?null:score);
+  const bureaus=repScore!=null?triMerge(repScore,rnd):null;
+  return{
+    creditScore:repScore,           // representative = middle of the tri-merge
+    bureaus,                         // {equifax, experian, transunion, mid}
+    creditNote:real.creditNote||null,
+    monthlyIncome:real.monthlyIncome!=null?real.monthlyIncome:income,
+    employment:real.employment||"Not provided",
+    estimatedDTI:dti,
+    reserves:real.reserves||"Not provided",
+    intent:real.intent||"Not stated",
+    bankruptcy:rnd()>0.85,
+    // Credit-report detail (provider upload).
+    utilizationPct:Math.round(10+rnd()*70),
+    openTradelines:3+Math.floor(rnd()*12),
+    derogatories:effScore<620?(1+Math.floor(rnd()*3)):(rnd()>0.8?1:0),
+    recentInquiries:Math.floor(rnd()*5),
+    oldestTradelineYrs:2+Math.floor(rnd()*22),
+    judgments:rnd()>0.88?1:0,
+    // Asset / cash-flow (Plaid).
+    liquidAssets:Math.round(income*(rnd()*8)),
+    avgMonthlyCashFlow:Math.round(income*(0.04+rnd()*0.22)),
+    docs:hasReal?["Credit report","Income verification","Bank statements (Plaid)"]:["Credit report (sample)"],
+    source:hasReal?"Afford intake upload":"intake (sample)",
+  };
+}
+/* map the rich borrower profile to the engine's Borrower shape */
+function engineBorrower(b){if(!b)return null;return{credit_score:b.creditScore,estimated_dti_pct:b.estimatedDTI,bankruptcy:b.bankruptcy,intent:b.intent};}
+
+/* ============================================================================ HYDRATE */
+let _id=1;
+function apprProp(d){return{market_value:d.property.market_value,last_sale_price:d.facts.last_sale_price,last_sale_year:d.facts.last_sale_year};}
+// Fill the distinct money fields not supplied by the seed/import so the
+// capital-structure view is populated. Existing loan ≈ a seeded LTV of market;
+// sale price defaults to our capital deployed (editable — they can diverge).
+function fillEconomics(d){const t=d.terms=d.terms||{};const rnd=seededRand("econ"+(d.client||d.address||""));const mv=d.property&&d.property.market_value;
+  if(t.loan_balance==null&&mv){t.loan_balance=Math.round(mv*(0.45+rnd()*0.35)/1000)*1000;t._loan_est=true;}
+  if(t.sale_price==null||t._sale_est){const cb=costBasis(t).v;if(cb!=null){t.sale_price=cb;t._sale_est=true;}}
+}
+function hydrate(d){d.id=d.id||("seed-"+(_id++));d.facts=d.facts||{};d.enrich=d.enrich||{};d.property=d.property||{};
+  d.borrower=d.borrower||genBorrower(d);d.area=buildArea(d);fillEconomics(d);
+  d.analysis=analyze({terms:d.terms,property:d.property,area:d.area,borrower:engineBorrower(d.borrower)});
+  d.appreciation=projectAppreciation(apprProp(d),d.area);d.comps=genComps(d);d.canopy=genCanopy(d);d.capex=capexForecast(d);d.income=incomeProjection(d);return d;}
+function rehydrate(d){d.area=buildArea(d);fillEconomics(d);d.analysis=analyze({terms:d.terms,property:d.property,area:d.area,borrower:engineBorrower(d.borrower)});d.appreciation=projectAppreciation(apprProp(d),d.area);d.capex=capexForecast(d);d.income=incomeProjection(d);return d;}
+function rescoreAll(){DEALS.forEach(rehydrate);}
+
+/* ============================================================================ FORMAT/RENDER */
+const fmtUSD=new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0});
+const money=v=>(v==null||isNaN(v))?"—":fmtUSD.format(v);
+const pct=(v,dd=1)=>(v==null||isNaN(v))?"—":v.toFixed(dd)+"%";
+const RECLABEL={proceed:"Proceed",conditional:"Conditional",pass:"Pass",insufficient_data:"Insufficient Data"};
+const chip=r=>`<span class="chip ${r}">${RECLABEL[r]||r}</span>`;
+/* Pipeline-table recommendation chip with a hover tooltip explaining WHY the
+   engine landed on Proceed / Conditional / Pass — composed from the risk
+   factors, benefit factors, and any warnings the analyzer raised. Avoids
+   having to open each deal's dossier just to read the rationale. */
+function chipExplained(a){
+  const reasonLines=[];
+  const fs=(a&&a.factors)||[];
+  const risks=fs.filter(f=>f.kind==="risk");
+  const bens=fs.filter(f=>f.kind==="benefit");
+  reasonLines.push(`${(RECLABEL[a.recommendation]||a.recommendation)} — Risk ${a.risk_score} (${a.risk_level}) · Benefit ${a.benefit_score} · Confidence ${a.confidence}`);
+  if(a.equity_cushion_pct!=null)reasonLines.push(`Cushion ${a.equity_cushion_pct.toFixed(1)}% · Buyback-to-value ${a.buyback_to_value_pct!=null?a.buyback_to_value_pct.toFixed(0)+'%':'—'}`);
+  if(risks.length){reasonLines.push("");reasonLines.push("RISKS:");risks.forEach(f=>reasonLines.push(`  − ${f.label} (${f.points}) — ${f.detail}`));}
+  if(bens.length){reasonLines.push("");reasonLines.push("BENEFITS:");bens.forEach(f=>reasonLines.push(`  + ${f.label} (${f.points}) — ${f.detail}`));}
+  if(a.warnings&&a.warnings.length){reasonLines.push("");reasonLines.push("WARNINGS:");a.warnings.forEach(w=>reasonLines.push(`  ! ${w}`));}
+  /* `title` attr supports newlines; escape quotes/angle-brackets to keep markup safe. */
+  const tip=reasonLines.join("\n").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  return `<span class="chip ${a.recommendation}" title="${tip}" style="cursor:help;">${RECLABEL[a.recommendation]||a.recommendation}</span>`;
+}
+const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
+const trendTag=t=>`<span class="trend ${t||'unknown'}">${cap(t||'unknown')}</span>`;
+const src=(k)=>`<span class="src-badge src-${k}">${k}</span>`;
+
+function renderSummary(){const c={proceed:0,conditional:0,pass:0,insufficient_data:0};let mkt=0,bb=0,capex=0,ten=0;DEALS.forEach(d=>{c[d.analysis.recommendation]++;mkt+=d.analysis.market_value||0;bb+=d.analysis.buyback_price||0;capex+=(d.capex&&d.capex.expected)||0;ten+=(d.appreciation&&d.appreciation.y10.value)||0;});
+  document.getElementById("summary").innerHTML=`<div class="stat"><div class="k">Deals</div><div class="v">${DEALS.length}</div></div><div class="stat"><div class="k">Proceed</div><div class="v sm" style="color:var(--green)">${c.proceed}</div></div><div class="stat"><div class="k">Conditional</div><div class="v sm" style="color:var(--amber)">${c.conditional}</div></div><div class="stat"><div class="k">Pass</div><div class="v sm" style="color:var(--red)">${c.pass}</div></div><div class="stat"><div class="k">Insufficient</div><div class="v sm" style="color:var(--gray)">${c.insufficient_data}</div></div><div class="stat"><div class="k">Σ Market value</div><div class="v sm">${money(mkt)}</div></div><div class="stat"><div class="k">Σ Buyback</div><div class="v sm">${money(bb)}</div></div><div class="stat"><div class="k">Σ CapEx reserve</div><div class="v sm" style="color:var(--amber)">${money(capex)}</div></div><div class="stat"><div class="k">Σ 10-yr value</div><div class="v sm" style="color:var(--green)">${money(ten)}</div></div>`;}
+/* approx city coordinates (production: RealEstateAPI geo) + state centroids */
+const COORDS={"Vernon Pinson":[37.64,-93.10],"Patrick Tomlinson":[35.54,-87.22],"Harold Brock":[29.19,-82.18],"Seth Teel":[37.69,-97.34],"Amber Jeffers":[40.75,-86.07],"Shawna Parris":[39.74,-84.64],"Brittany Grimmette":[29.24,-81.05],"Michael Braxton":[34.24,-77.95],"Margie Latham":[37.05,-80.78],"Chad Fontaine":[33.75,-93.89],"Christopher Wright":[42.42,-83.24],"Timothy Doan":[30.42,-87.27],"Michael Weis":[41.80,-72.11],"Adam Walker":[32.22,-110.97],"Richard Herbst":[43.00,-78.19]};
+const STATE_CENTROID={AL:[32.8,-86.8],AK:[63.6,-152.0],AZ:[34.2,-111.7],AR:[34.8,-92.4],CA:[37.2,-119.5],CO:[39.0,-105.5],CT:[41.6,-72.7],DE:[39.0,-75.5],DC:[38.9,-77.0],FL:[28.6,-81.5],GA:[32.7,-83.5],HI:[20.8,-156.3],ID:[44.4,-114.6],IL:[40.0,-89.2],IN:[39.9,-86.3],IA:[42.0,-93.5],KS:[38.5,-98.0],KY:[37.5,-85.3],LA:[31.0,-92.0],ME:[45.4,-69.2],MD:[39.0,-76.8],MA:[42.3,-71.8],MI:[43.3,-84.6],MN:[46.3,-94.3],MS:[32.7,-89.7],MO:[38.5,-92.5],MT:[47.0,-109.6],NE:[41.5,-99.8],NV:[39.3,-116.6],NH:[43.7,-71.6],NJ:[40.2,-74.6],NM:[34.4,-106.1],NY:[42.9,-75.5],NC:[35.5,-79.4],ND:[47.5,-100.5],OH:[40.2,-82.8],OK:[35.6,-97.5],OR:[44.0,-120.6],PA:[40.9,-77.8],RI:[41.7,-71.6],SC:[33.9,-80.9],SD:[44.4,-100.2],TN:[35.8,-86.4],TX:[31.5,-99.0],UT:[39.3,-111.7],VT:[44.1,-72.7],VA:[37.5,-78.9],WA:[47.4,-120.5],WV:[38.6,-80.6],WI:[44.6,-89.9],WY:[43.0,-107.5]};
+const REC_COLOR={proceed:"#16a06a",conditional:"#e0a818",pass:"#d4433a",insufficient_data:"#94a3b8"};
+function dealCoord(d){return COORDS[d.client]||STATE_CENTROID[(d.state||"").toUpperCase()]||null;}
+// ---- Real U.S. map: d3-geo + us-atlas TopoJSON (states-10m, geographic
+// coordinates). An Albers-USA projection (fitted to the frame) draws every
+// state with real boundaries and places Alaska & Hawaii in the usual insets;
+// the SAME projection positions the deal dots. Loaded from a CDN at runtime. ----
+const MAP_CDN={d3:"https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js",topo:"https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js",atlas:"https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json"};
+let _mapLibs=null,_usTopo=null;
+function loadScript(src,ready){return new Promise((res,rej)=>{if(ready()){res();return;}const s=document.createElement("script");s.src=src;s.onload=()=>res();s.onerror=()=>rej(new Error("load "+src));document.head.appendChild(s);});}
+function ensureMap(){if(_mapLibs)return _mapLibs;_mapLibs=loadScript(MAP_CDN.d3,()=>!!window.d3).then(()=>loadScript(MAP_CDN.topo,()=>!!window.topojson)).then(()=>_usTopo?_usTopo:fetch(MAP_CDN.atlas).then(r=>{if(!r.ok)throw new Error("atlas "+r.status);return r.json();})).then(t=>(_usTopo=t));return _mapLibs;}
+function renderMap(rows){
+  const el=document.getElementById("portfolioMap");if(!el)return;
+  if(window.d3&&window.topojson&&_usTopo){drawMap(el,rows,_usTopo);return;}
+  el.innerHTML=`<h3>Portfolio map <span class="note" style="text-transform:none;letter-spacing:0;">· loading…</span></h3><div class="maploading">Loading U.S. map…</div>`;
+  ensureMap().then(us=>drawMap(el,rows,us)).catch(()=>{const l=el.querySelector(".maploading");if(l)l.textContent="Map data couldn’t load (no network). The property list below is unaffected.";});
+}
+function drawMap(el,rows,us){
+  const d3=window.d3,topojson=window.topojson,W=975,H=610;
+  const states=topojson.feature(us,us.objects.states).features;
+  const nation=topojson.feature(us,us.objects.nation);
+  const interior=topojson.mesh(us,us.objects.states,(a,b)=>a!==b);
+  const proj=d3.geoAlbersUsa().fitExtent([[8,8],[W-8,H-8]],nation);
+  const path=d3.geoPath(proj);
+  const stateFills=states.map(f=>`<path d="${path(f)}" fill="#eaf1fa"/>`).join("");
+  const pts=rows.map(d=>{const c=dealCoord(d);return{d,xy:c?proj([c[1],c[0]]):null};}).filter(p=>p.xy);
+  const seen={};
+  const dots=pts.map(p=>{const k=p.xy[0].toFixed(0)+","+p.xy[1].toFixed(0);const i=(seen[k]=(seen[k]||0)+1)-1;const ang=i*2.39996,rad=i?10+i*2:0;const x=p.xy[0]+Math.cos(ang)*rad,y=p.xy[1]+Math.sin(ang)*rad;const a=p.d.analysis;const r=a.market_value?Math.max(7,Math.min(20,Math.sqrt(a.market_value)/40)):7;const col=REC_COLOR[a.recommendation];return `<circle class="mapdot" data-id="${p.d.id}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="${col}" fill-opacity="0.82" stroke="#fff" stroke-width="1.8"><title>${(p.d.client||p.d.address||'')} — ${[p.d.city,p.d.state].filter(Boolean).join(', ')}\n${RECLABEL[a.recommendation]} · ${money(a.market_value)}</title></circle>`;}).join("");
+  const legend=Object.entries(REC_COLOR).map(([k,c])=>`<span><i style="background:${c}"></i>${RECLABEL[k]}</span>`).join("");
+  el.innerHTML=`<h3>Portfolio map <span class="note" style="text-transform:none;letter-spacing:0;">· all 50 states (Alaska &amp; Hawaii inset) · bubble size = market value</span></h3>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;background:linear-gradient(180deg,#eef4fb,#e2ebf7);border-radius:12px;border:1px solid var(--line);">
+      <path d="${path(nation)}" fill="#f7faff"/>
+      ${stateFills}
+      <path d="${path(interior)}" fill="none" stroke="#9db1cd" stroke-width="0.7"/>
+      <path d="${path(nation)}" fill="none" stroke="#6f88ab" stroke-width="1.1"/>
+      ${dots}</svg><div class="maplegend">${legend}</div>`;
+  el.querySelectorAll(".mapdot").forEach(c=>c.onclick=()=>openDetail(c.dataset.id));
+}
+let __sortKey=null,__sortDir=-1,__compare=new Set();
+function sortVal(d,k){const a=d.analysis;if(k==="address")return (d.address||"").toLowerCase();if(k==="recommendation")return({proceed:4,conditional:3,pass:2,insufficient_data:1})[a.recommendation]||0;if(k==="tenyr")return d.appreciation?d.appreciation.y10.value:-1;if(k==="monthly_rent")return (d.terms&&d.terms.monthly_rent)||(d.enrich&&d.enrich.rentEstimate)||-Infinity;const v=a[k];return v==null?-Infinity:v;}
+function renderPipeline(){renderSummary();const f=document.getElementById("filterRec").value;let rows=DEALS.filter(d=>!f||d.analysis.recommendation===f);
+  if(__sortKey){rows=rows.slice().sort((x,y)=>{const a=sortVal(x,__sortKey),b=sortVal(y,__sortKey);if(a<b)return -1*__sortDir;if(a>b)return 1*__sortDir;return 0;});}
+  document.getElementById("count").textContent=`${rows.length} of ${DEALS.length} shown`;
+  renderMap(rows);
+  document.querySelectorAll("th.sortable").forEach(th=>{th.classList.remove("asc","desc");if(th.dataset.k===__sortKey)th.classList.add(__sortDir===1?"asc":"desc");});
+  document.getElementById("pipelineBody").innerHTML=rows.map(d=>{const a=d.analysis,fc=d.facts;const bb10=d.appreciation?money(d.appreciation.y10.value):"—";const rent=(d.terms&&d.terms.monthly_rent)||(d.enrich&&d.enrich.rentEstimate)||null;return `<tr class="click" data-id="${d.id}"><td><input type="checkbox" class="cmp" data-id="${d.id}" ${__compare.has(d.id)?'checked':''}></td><td><b>${d.address||"—"}</b><div class="note">${[d.city,d.state,d.zip].filter(Boolean).join(", ")}</div></td><td>${fc.beds!=null?fc.beds:"—"} / ${fc.baths!=null?fc.baths:"—"}</td><td>${chipExplained(a)}</td><td class="num">${money(a.market_value)}</td><td class="num">${money(a.buyback_price)}</td><td class="num">${rent!=null?money(rent):"—"}</td><td class="num">${pct(a.equity_cushion_pct)}${a.cost_basis_estimated?'<span class="est">est</span>':''}</td><td class="num">${bb10}</td><td class="num risk-${a.risk_level}">${a.risk_score}</td></tr>`;}).join("");
+  document.querySelectorAll("#pipelineBody tr").forEach(tr=>tr.onclick=()=>openDetail(tr.dataset.id));
+  document.querySelectorAll("#pipelineBody .cmp").forEach(cb=>cb.onclick=ev=>{ev.stopPropagation();if(cb.checked)__compare.add(cb.dataset.id);else __compare.delete(cb.dataset.id);updateCompareBtn();});
+  updateCompareBtn();}
+function updateCompareBtn(){const btn=document.getElementById("compareBtn");if(!btn)return;const n=__compare.size;btn.textContent=`Compare (${n})`;btn.disabled=n<2;}
+function openCompare(){
+  const sel=DEALS.filter(d=>__compare.has(d.id));if(sel.length<2)return;
+  const rowsDef=[
+    ["Recommendation",d=>chip(d.analysis.recommendation)],
+    ["Confidence",d=>cap(d.analysis.confidence)],
+    ["Risk score",d=>`<span class="risk-${d.analysis.risk_level}">${d.analysis.risk_score}</span>`],
+    ["Benefit score",d=>d.analysis.benefit_score],
+    ["Market value",d=>money(d.analysis.market_value)],
+    ["Our cost basis",d=>money(d.analysis.cost_basis)+(d.analysis.cost_basis_estimated?' <span class="est">est</span>':'')],
+    ["Buyback",d=>money(d.analysis.buyback_price)],
+    ["Equity cushion",d=>pct(d.analysis.equity_cushion_pct)],
+    ["Buyback / value",d=>pct(d.analysis.buyback_to_value_pct)],
+    ["Repurchase ann. ROI",d=>d.analysis.repurchase_scenario?pct(d.analysis.repurchase_scenario.annualized_roi_pct):"—"],
+    ["Annual appreciation",d=>d.appreciation?d.appreciation.annual_rate+"%/yr":"—"],
+    ["10-yr value",d=>d.appreciation?money(d.appreciation.y10.value):"—"],
+    ["Expected CapEx",d=>d.capex?money(d.capex.expected):"—"],
+    ["Borrower credit",d=>{const c=creditBand(d.borrower&&d.borrower.creditScore);return `<span class="credit-badge ${c.cls}">${c.label}</span>`;}],
+    ["Stated intent",d=>d.borrower?d.borrower.intent:"—"],
+  ];
+  const head=`<th class="metric"></th>`+sel.map(d=>`<th>${d.client||d.address||""}<div class="note" style="font-weight:400">${[d.city,d.state].filter(Boolean).join(", ")}</div></th>`).join("");
+  const body=rowsDef.map(rd=>`<tr><td class="metric">${rd[0]}</td>${sel.map(d=>`<td class="num">${rd[1](d)}</td>`).join("")}</tr>`).join("");
+  document.getElementById("compareBody").innerHTML=`<h2 style="margin-top:-30px;">Deal comparison <span class="note" style="font-weight:400">· ${sel.length} deals</span></h2><div style="overflow-x:auto;margin-top:14px;"><table class="cmptable"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  const bg=document.getElementById("compareBg");bg.classList.add("open");bg.scrollTop=0;}
+
+function scenCard(title,s){if(!s)return `<div class="scen" style="border-style:dashed;color:#9aa3af">${title}: not enough data</div>`;const pc=s.net_profit>=0?"pos":"neg";return `<div class="scen"><div class="top"><h4>${title}</h4><span class="chip ${s.profitable?'proceed':'pass'}">${s.profitable?'Profitable':'Loss'}</span></div><dl><dt>Cash in</dt><dd>${money(s.cash_in)}</dd><dt>Cash out</dt><dd>${money(s.cash_out)}</dd><dt>Net profit</dt><dd class="${pc}"><b>${money(s.net_profit)}</b></dd><dt>Annualized ROI</dt><dd>${pct(s.annualized_roi_pct)}</dd></dl></div>`;}
+function schoolDots(r){if(r==null)return "—";let h="";for(let i=1;i<=10;i++)h+=`<i class="${i<=Math.round(r)?'on':''}"></i>`;return `${r.toFixed(1)}/10 <span class="school-dots">${h}</span>`;}
+
+let __active=null,__series=null;
+function valueChartBlock(d){if(d.property.market_value==null)return "";__series=valueSeries(d,10);return `<div class="section"><div class="row-between" style="margin-bottom:8px;"><div class="secttitle" style="margin:0;">📉 Value over time ${src('live')}</div><div class="rangebtns" id="rangeBtns">${[["12mo",1],["5yr",5],["10yr",10],["20yr",20]].map(([l,y],i)=>`<button data-y="${y}" class="${i===2?'active':''}">${l}</button>`).join("")}</div></div><div class="card"><div class="chartwrap" id="valChartWrap"><div id="valChart">${lineChart(__series)}</div><div class="chartGuide" id="valGuide"></div><div class="chartTip" id="valTip"></div></div><div class="note" style="margin-top:6px;">Hover the line for the value at any month. Reconstructed from recorded sale(s) + modeled appreciation (passes through actual sale points, blue dot). Production overlays RealEstateAPI sale/AVM history.</div></div></div>`;}
+
+function borrowerBlock(d){const b=d.borrower;if(!b)return "";const cb=creditBand(b.creditScore);
+  return `<div class="section"><div class="secttitle">👤 Borrower / occupant position ${src('live')}</div><div class="card">
+    <div class="metrics" style="margin-bottom:14px;">
+      <div class="metric"><div class="k">Credit</div><div class="v"><span class="credit-badge ${cb.cls}">${cb.label}</span></div>${b.creditNote?`<div class="h">${b.creditNote}</div>`:""}</div>
+      <div class="metric"><div class="k">Monthly income</div><div class="v">${b.monthlyIncome?money(b.monthlyIncome):"—"}</div><div class="h">Est. housing DTI ${b.estimatedDTI!=null?b.estimatedDTI+"%":"—"}</div></div>
+      <div class="metric"><div class="k">Liquid assets (Plaid)</div><div class="v">${money(b.liquidAssets)}</div><div class="h">Avg cash flow ${money(b.avgMonthlyCashFlow)}/mo</div></div>
+    </div>
+    <div class="grid2">
+      <div class="card" style="box-shadow:none;"><h3>Credit report <span class="src-badge src-canopy" style="margin-left:4px;">CIC tri-merge</span></h3><div class="kv">
+        ${b.bureaus?`<dt>Equifax</dt><dd${b.bureaus.equifax===b.bureaus.mid?' style="color:var(--brand);font-weight:800;"':''}>${b.bureaus.equifax}</dd>
+        <dt>Experian</dt><dd${b.bureaus.experian===b.bureaus.mid?' style="color:var(--brand);font-weight:800;"':''}>${b.bureaus.experian}</dd>
+        <dt>TransUnion</dt><dd${b.bureaus.transunion===b.bureaus.mid?' style="color:var(--brand);font-weight:800;"':''}>${b.bureaus.transunion}</dd>
+        <dt>Representative (mid)</dt><dd style="font-weight:800;">${b.bureaus.mid}</dd>`
+        :`<dt>Score</dt><dd>${b.creditNote?"In file":"—"}</dd>`}
+        <dt>Revolving utilization</dt><dd class="${b.utilizationPct>50?'neg':''}">${b.utilizationPct}%</dd>
+        <dt>Open tradelines</dt><dd>${b.openTradelines}</dd>
+        <dt>Oldest tradeline</dt><dd>${b.oldestTradelineYrs} yr</dd>
+        <dt>Derogatory marks</dt><dd class="${b.derogatories>0?'neg':''}">${b.derogatories}</dd>
+        <dt>Recent inquiries</dt><dd>${b.recentInquiries}</dd>
+        <dt>Judgments / liens</dt><dd class="${b.judgments>0?'neg':''}">${b.judgments}</dd>
+        <dt>Bankruptcy on file</dt><dd>${b.bankruptcy?'<span class="neg">Yes</span>':'No'}</dd></div></div>
+      <div class="card" style="box-shadow:none;"><h3>Position &amp; intent</h3><div class="kv">
+        <dt>Employment</dt><dd style="font-weight:500;text-align:right;max-width:62%">${b.employment}</dd>
+        <dt>Reserves / context</dt><dd style="font-weight:500;text-align:right;max-width:62%">${b.reserves}</dd>
+        <dt>Stated intent</dt><dd style="font-weight:700;text-align:right;max-width:62%">${b.intent}</dd></div>
+        <div class="note" style="margin-top:10px;"><b>Documents on file:</b> ${b.docs.join(" · ")}</div></div>
+    </div>
+    <div class="note" style="margin-top:8px;">Source: ${b.source}. Credit + assets feed the engine's <b>repurchase-likelihood</b> scoring. In production this is populated from the provider's borrower upload (credit pull, income docs, Plaid).</div></div></div>`;}
+
+function canopyBlock(d){const c=d.canopy;if(!c)return "";
+  return `<div class="section"><div class="secttitle">🛡️ Insurance &amp; condition — Canopy Connect ${src('canopy')}</div><div class="card"><div class="grid2">
+    <div class="kv"><dt>Carrier</dt><dd>${c.insurer}</dd><dt>Policy</dt><dd>${c.policyType}</dd><dt>Annual premium</dt><dd>${money(c.annualPremium)}</dd><dt>Dwelling coverage</dt><dd>${money(c.dwellingCoverage)}</dd><dt>Replacement cost</dt><dd>${money(c.replacementCost)}</dd></div>
+    <div class="kv"><dt>Deductible</dt><dd>${money(c.deductible)}</dd><dt>Liability</dt><dd>${money(c.liability)}</dd><dt>Roof</dt><dd>${c.roofType} · ${c.roofYear}</dd><dt>Effective</dt><dd>${c.effectiveDate}</dd><dt>Flood zone</dt><dd>${c.floodZone?'<span class="neg">Yes</span>':'No'}</dd></div>
+  </div>${c.claims.length?`<div class="note" style="margin-top:8px;"><b>Prior claims:</b> ${c.claims.map(cl=>`${cl.year} ${cl.type} (${money(cl.paid)})`).join(" · ")}</div>`:`<div class="note" style="margin-top:8px;">No prior claims on file.</div>`}<div class="note">Canopy Connect pulls policy + property characteristics directly from the homeowner's carrier (permissioned). Fills component ages used in the CapEx forecast below.</div></div></div>`;}
+
+function capexBlock(d){const cx=d.capex;if(!cx||!cx.rows.length)return "";
+  return `<div class="section"><div class="secttitle">🔧 Unexpected-cost (CapEx) forecast ${src('canopy')}</div><div class="card">
+    <table class="capex"><thead><tr><th>Component</th><th class="num">Installed</th><th class="num">Age</th><th class="num">Life</th><th class="num">Remaining</th><th class="num">Replace</th><th class="num">Fail in ${cx.holdYears}yr</th><th class="num">Expected</th></tr></thead>
+    <tbody>${cx.rows.map(r=>`<tr style="cursor:default"><td>${r.name} <span class="lvl ${r.risk}">${cap(r.risk)}</span></td><td class="num">${r.installYear||"—"}</td><td class="num">${r.age!=null?r.age+" yr":"—"}</td><td class="num">${r.life} yr</td><td class="num">${r.remaining!=null?r.remaining+" yr":"—"}</td><td class="num">${money(r.cost)}</td><td class="num">${Math.round(r.prob*100)}%</td><td class="num">${money(r.exp)}</td></tr>`).join("")}</tbody>
+    <tfoot><tr><td colspan="7" style="text-align:right;font-weight:800;border-top:2px solid #e2e8f0">Expected CapEx reserve over hold</td><td class="num" style="font-weight:800;border-top:2px solid #e2e8f0">${money(cx.expected)}</td></tr></tfoot></table>
+    <div class="note" style="margin-top:6px;">Expected = replacement cost × probability of failure within the ${cx.holdYears}-yr hold (from component age vs. expected service life). Ages from Canopy Connect / year built. This reserve is subtracted in the income projection.</div></div></div>`;}
+
+const CUSHION_LABEL={capital_deployed:"our capital deployed",sale_price:"the sale price",loan_balance:"the loan balance"};
+function optionFeeLabel(t){if(t.option_fee_mode==="pct"&&t.option_fee_pct!=null){const base=t.option_fee_basis==="loan_balance"?"loan balance":(t.option_fee_basis==="buyback"?"buyback":"sale price");return `${money(optionFee(t))} <span class="note" style="font-weight:400">(${t.option_fee_pct}% of ${base})</span>`;}return money(optionFee(t));}
+function economicsBlock(d){const t=d.terms||{},a=d.analysis;const mv=a.market_value;
+  const ltv=(t.loan_balance!=null&&mv)?round1(t.loan_balance/mv*100):null;
+  const disc=(t.sale_price!=null&&mv)?round1((mv-t.sale_price)/mv*100):null;
+  const row=(label,val,note,est)=>`<dt>${label}</dt><dd>${val}${est?' <span class="est">est</span>':''}${note?`<div class="note" style="font-weight:400">${note}</div>`:''}</dd>`;
+  return `<div class="section"><div class="secttitle">🏦 Capital structure</div><div class="card"><div class="grid2">
+    <div class="kv">
+      ${row("Market value (AVM)",money(mv),null,false)}
+      ${row("Existing loan balance",money(t.loan_balance),ltv!=null?`LTV ${ltv}% of market`:null,t._loan_est)}
+      ${row("Sale price (contract)",money(t.sale_price),disc!=null?`${disc>=0?disc+'% below':(-disc)+'% above'} market`:null,t._sale_est)}
+      ${row("Our purchase / capital deployed",money(a.cost_basis),"basis used for the equity cushion",a.cost_basis_estimated)}
+    </div>
+    <div class="kv">
+      ${row("Year-2 buyback",money(a.buyback_price),a.buyback_to_value_pct!=null?`${a.buyback_to_value_pct}% of market`:null,false)}
+      ${row("Option fee",optionFeeLabel(t),null,false)}
+      ${row("Other fees",money(t.total_fees),null,false)}
+      ${row("Monthly rent",t.monthly_rent?money(t.monthly_rent)+"/mo":"—",null,false)}
+    </div></div>
+    <div class="note" style="margin-top:8px;">Market value, the existing loan, the contract sale price and our capital deployed are tracked as separate, independent figures. The <b>equity cushion</b> (${pct(a.equity_cushion_pct)}) is measured against <b>${CUSHION_LABEL[a.cushion_ref]||"our capital deployed"}</b> — change this on the deal-terms editor below. The option fee can be a flat cash amount or a % of the sale price, loan balance, or buyback.</div></div></div>`;}
+function wfList(lines){return lines.map(l=>`<div class="line"><span>${l[0]}</span><span class="amt ${l[1]<0?'neg':'pos'}">${l[1]<0?'−':''}${money(Math.abs(l[1]))}</span></div>`).join("");}
+function incomeBlock(d){const inc=d.income;if(!inc)return "";
+  function col(s){if(!s)return "";return `<div class="card"><h3>${s.label}</h3><div class="wf">${wfList(s.incomeLines)}${wfList(s.costLines)}<div class="line tot"><span>Net profit to VAB</span><span class="amt ${s.net>=0?'pos':'neg'}">${s.net>=0?'':'−'}${money(Math.abs(s.net))}</span></div></div><div class="metrics" style="margin-top:12px;grid-template-columns:1fr 1fr;"><div class="metric"><div class="k">ROI on basis</div><div class="v ${s.roi>=0?'':'neg'}">${pct(s.roi)}</div></div><div class="metric"><div class="k">Annualized</div><div class="v ${s.ann>=0?'':'neg'}">${pct(s.ann)}</div></div></div></div>`;}
+  const t=d.terms||{};
+  const opMode=t.option_fee_mode==="pct"?"pct":"cash";
+  const editor=`<div class="card" style="margin-bottom:14px;"><h3>Deal terms — modify this deal</h3><div class="termsedit">
+    ${[["Sale price ($)","ed_sale",t.sale_price],["Existing loan ($)","ed_loan",t.loan_balance],["Our purchase / basis ($)","ed_basis",t.capital_deployed],["Buyback ($)","ed_buyback",t.buyback_price_y2],["Other fees ($)","ed_fees",t.total_fees],["Monthly rent ($)","ed_rent",t.monthly_rent],["Term (mo)","ed_term",t.lease_term_months]].map(([l,id,v])=>`<div><label>${l}</label><input type="number" id="${id}" value="${v??""}"></div>`).join("")}
+    <div><label>Option fee</label><select id="ed_optmode">${[["cash","Cash $"],["pct","% of…"]].map(([v,l])=>`<option value="${v}" ${opMode===v?"selected":""}>${l}</option>`).join("")}</select></div>
+    <div><label>Option fee — cash ($)</label><input type="number" id="ed_option" value="${t.option_fee??""}"></div>
+    <div><label>Option fee — %</label><input type="number" step="0.5" id="ed_optpct" value="${t.option_fee_pct??""}"></div>
+    <div><label>% of</label><select id="ed_optbasis">${[["sale_price","Sale price"],["loan_balance","Loan balance"],["buyback","Buyback"]].map(([v,l])=>`<option value="${v}" ${(t.option_fee_basis||"sale_price")===v?"selected":""}>${l}</option>`).join("")}</select></div>
+    <div><label>Equity cushion measured vs</label><select id="ed_cushref">${[["capital_deployed","Our capital deployed"],["sale_price","Sale price"],["loan_balance","Loan balance"]].map(([v,l])=>`<option value="${v}" ${(t.cushion_ref||"capital_deployed")===v?"selected":""}>${l}</option>`).join("")}</select></div>
+  </div><button class="btn" id="applyTerms" data-id="${d.id}">Apply to this deal</button> <span class="note">Recomputes the verdict, scenarios, appreciation &amp; income live.</span></div>`;
+  return `<div class="section"><div class="secttitle">💵 Income projection from deal terms ${src('live')}</div>${editor}<div class="grid2">${col(inc.repurchase)}${col(inc.resale)}</div><div class="note" style="margin-top:6px;">Includes the expected CapEx reserve (${money(inc.capex)}). Defaults come from the <b>Deal Template</b> tab; edit above to model this specific deal.</div></div>`;}
+
+function compsBlock(d){if(!d.comps||!d.comps.length)return "";const a=d.analysis,f=d.facts;
+  return `<div class="section"><div class="secttitle">🏘️ Comparable sales ${src('live')}</div><table><thead><tr><th>Address</th><th class="num">Dist</th><th>Bd/Ba</th><th class="num">SqFt</th><th class="num">$/sqft</th><th class="num">Sold</th><th class="num">Date</th></tr></thead><tbody>${d.comps.map((c,i)=>`<tr class="click comp-row" data-i="${i}"><td>${c.addr}<div class="note">${c.city}, ${c.state}</div></td><td class="num">${c.dist} mi</td><td>${c.beds}/${c.baths}</td><td class="num">${c.sqft.toLocaleString()}</td><td class="num">$${c.ppsf}</td><td class="num">${money(c.price)}</td><td class="num">${c.date}</td></tr>`).join("")}</tbody></table><div class="note" style="margin-top:6px;">Subject est. $/sqft: ${(a.market_value&&f.sqft)?'$'+Math.round(a.market_value/f.sqft):'—'} · click a comp to open it. Production: RealEstateAPI <code>/PropertyComps</code>.</div></div>`;}
+
+function detailHTML(d){const a=d.analysis,f=d.facts,e=d.enrich,ar=d.area;const photos=galleryFor(d);
+  const taxAnnual=(a.market_value!=null&&ar.property_tax_rate_pct!=null)?a.market_value*ar.property_tax_rate_pct/100:null;
+  const ins=(d.canopy&&d.canopy.annualPremium)||ar.insurance_annual_est;
+  const pills=[f.beds!=null?`<span class="pill"><b>${f.beds}</b> beds</span>`:"",f.baths!=null?`<span class="pill"><b>${f.baths}</b> baths</span>`:"",f.sqft?`<span class="pill"><b>${f.sqft.toLocaleString()}</b> sqft</span>`:"",f.lotAcres!=null?`<span class="pill"><b>${f.lotAcres}</b> ac lot</span>`:"",f.yearBuilt?`<span class="pill">Built <b>${f.yearBuilt}</b></span>`:"",f.type?`<span class="pill">${f.type}</span>`:""].filter(Boolean).join("");
+  const ap=d.appreciation;
+  const apprHTML=ap?`<div class="section"><div class="secttitle">📈 Projected appreciation ${src('live')}</div><div class="card"><div class="appr">${[["1 year",ap.y1],["2 years",ap.y2],["10 years",ap.y10]].map(([lab,p])=>{const w=clamp(Math.abs(p.totalPct),2,100);return `<div class="apprcol"><div class="yr">${lab}</div><div class="val">${money(p.value)}</div><div class="gain ${p.gain>=0?'pos':'neg'}">${p.gain>=0?'+':''}${money(p.gain)} (${p.totalPct>=0?'+':''}${p.totalPct}%)</div><div class="apprbar"><span style="width:${w}%"></span></div></div>`;}).join("")}</div><div style="margin-top:14px;"><div class="kv"><dt>Modeled annual rate</dt><dd><b>${ap.annual_rate}%/yr</b></dd><dt>Historical CAGR</dt><dd>${ap.historical_cagr!=null?ap.historical_cagr+'%/yr':'—'}</dd><dt>Market momentum</dt><dd>${ap.market_momentum>=0?'+':''}${ap.market_momentum} pts</dd></div><div class="note" style="margin-top:10px;"><b>How this is calculated:</b><ul style="margin:6px 0 0;padding-left:18px;">${ap.drivers.map(x=>`<li>${x}</li>`).join("")}</ul></div></div></div></div>`:"";
+  const areaHTML=`<div class="section"><div class="secttitle">🌎 Area intelligence</div><div class="areagrid"><div class="acard"><div class="t">Population ${src('live')}</div><div class="m">${ar.population_cagr_pct!=null?(ar.population_cagr_pct>=0?'+':'')+ar.population_cagr_pct+'%/yr':'—'}</div><div class="s">${trendTag(ar.population_trend)} US Census</div></div><div class="acard"><div class="t">Area rent ${src('live')}</div><div class="m">${e.rentEstimate?money(e.rentEstimate)+'/mo':'—'}</div><div class="s">${trendTag(ar.rent_trend)}</div></div><div class="acard"><div class="t">Schools ${src('live')}</div><div class="m" style="font-size:15px;">${schoolDots(ar.school_rating)}</div><div class="s">${trendTag(ar.school_trend)}</div></div><div class="acard"><div class="t">Home price trend ${src('live')}</div><div class="m">${ar.home_price_yoy_pct!=null?(ar.home_price_yoy_pct>=0?'+':'')+ar.home_price_yoy_pct+'% YoY':'—'}</div><div class="s">${trendTag(ar.home_price_trend)}</div></div><div class="acard"><div class="t">Property taxes ${src('live')}</div><div class="m">${taxAnnual!=null?money(taxAnnual)+'/yr':'—'}</div><div class="s">Rate ${ar.property_tax_rate_pct!=null?ar.property_tax_rate_pct+'%':'—'}</div></div><div class="acard"><div class="t">Insurance ${d.canopy?src('canopy'):src('sample')}</div><div class="m">${ins!=null?money(ins)+'/yr':'—'}</div><div class="s">${trendTag(ar.insurance_trend)}</div></div></div></div>`;
+  const factsHTML=`<div class="section"><div class="secttitle">🏠 Property facts ${src('live')}</div><div class="grid2"><div class="card"><h3>Structure</h3><div class="kv"><dt>Bedrooms</dt><dd>${f.beds??"—"}</dd><dt>Bathrooms</dt><dd>${f.baths??"—"}</dd><dt>Living area</dt><dd>${f.sqft?f.sqft.toLocaleString()+" sqft":"—"}</dd><dt>Lot size</dt><dd>${f.lotAcres!=null?f.lotAcres+" acres":"—"}</dd><dt>Year built</dt><dd>${f.yearBuilt??"—"}</dd><dt>Type</dt><dd>${f.type??"—"}</dd><dt>Construction</dt><dd>${f.construction??"—"}</dd></div></div><div class="card"><h3>Systems &amp; sale history</h3><div class="kv"><dt>Heating</dt><dd>${f.heating??"—"}</dd><dt>Cooling</dt><dd>${f.cooling??"—"}</dd><dt>Water / sewer</dt><dd>${f.waterSewer??"—"}</dd><dt>Last sale price</dt><dd>${money(f.last_sale_price)}</dd><dt>Last sale year</dt><dd>${f.last_sale_year??"—"}</dd><dt>Est. $/sqft</dt><dd>${(a.market_value&&f.sqft)?'$'+Math.round(a.market_value/f.sqft):"—"}</dd></div></div></div></div>`;
+  const risks=a.factors.filter(x=>x.kind==="risk"),bens=a.factors.filter(x=>x.kind==="benefit");
+  const flist=arr=>arr.length?arr.map(x=>`<div class="factor"><span class="pts ${x.kind}">+${x.points}</span><span>${x.detail}</span></div>`).join(""):`<p class="note">None</p>`;
+  const scoreHTML=`<div class="section"><div class="secttitle">⚖️ Deal scorecard</div><div class="card"><div class="grid2" style="gap:14px;margin-bottom:14px;"><div><div class="note">Risk score</div><div class="bar risk"><span style="width:${a.risk_score}%"></span></div><div class="note">${a.risk_score}/100 · ${cap(a.risk_level)} risk</div></div><div><div class="note">Benefit score</div><div class="bar benefit"><span style="width:${a.benefit_score}%"></span></div><div class="note">${a.benefit_score}/100</div></div></div><div class="metrics" style="margin-bottom:14px;"><div class="metric"><div class="k">Market value</div><div class="v">${money(a.market_value)}</div></div><div class="metric"><div class="k">Our cost basis</div><div class="v">${money(a.cost_basis)}${a.cost_basis_estimated?' <span class="est">est</span>':''}</div></div><div class="metric"><div class="k">Buyback price</div><div class="v">${money(a.buyback_price)}</div></div><div class="metric"><div class="k">Equity cushion</div><div class="v">${pct(a.equity_cushion_pct)}</div><div class="h">vs ${CUSHION_LABEL[a.cushion_ref]||"capital deployed"}</div></div><div class="metric"><div class="k">Buyback ÷ value</div><div class="v">${pct(a.buyback_to_value_pct)}</div></div><div class="metric"><div class="k">Hold period</div><div class="v">${a.hold_years.toFixed(1)} yrs</div></div></div><div class="grid2" style="gap:14px;">${scenCard("If repurchased",a.repurchase_scenario)}${scenCard("If walked → resell",a.resale_scenario)}</div>${a.warnings.length?`<div class="warn"><b>Warnings</b><ul style="margin:6px 0 0;padding-left:18px;">${a.warnings.map(w=>`<li>${w}</li>`).join("")}</ul></div>`:""}<div class="factors" style="margin-top:16px;"><div><h4 style="color:var(--red);margin-bottom:8px;">Risk factors</h4>${flist(risks)}</div><div><h4 style="color:var(--green);margin-bottom:8px;">Benefit factors</h4>${flist(bens)}</div></div></div></div>`;
+  return `<div class="hero"><div class="gallery"><div class="main"><img id="mainPhoto" src="${photos[0].url}" alt="${photos[0].label}"></div><div class="thumbs">${photos.map((p,i)=>`<img src="${p.url}" data-i="${i}" class="${i===0?'active':''}" title="${p.label}">`).join("")}</div><div class="note" style="margin-top:6px;">Illustrative placeholders ${src('sample')} — production renders RealEstateAPI MLS photos.</div></div><div class="heroinfo"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${chip(a.recommendation)} <span class="note">Confidence: <b>${cap(a.confidence)}</b></span><select id="dealStatus" style="margin-left:auto;font:inherit;font-size:12px;padding:4px 8px;border:1px solid var(--line);border-radius:7px;">${["pipeline","purchasing","purchased","passed"].map(s=>`<option value="${s}" ${(d.status||"pipeline")===s?"selected":""}>${STATUS_LABEL[s]}</option>`).join("")}</select></div><div class="addr" style="margin-top:10px;">${d.address||"Unknown address"}</div><div class="loc">${[d.city,d.state,d.zip].filter(Boolean).join(", ")}${d.client?` · <b>${d.client}</b>`:""}</div><div class="pills">${pills||'<span class="note">Property facts unavailable</span>'}</div><p style="margin:12px 0 0;font-size:13px;line-height:1.6;color:#334155;border-top:1px solid var(--line);padding-top:12px;">${generateSynopsis(d)}</p><div class="bigval"><div class="lab">Estimated market value ${src('live')}</div><div class="amt">${money(a.market_value)}</div><div class="note">${f.sqft&&a.market_value?'$'+Math.round(a.market_value/f.sqft)+'/sqft':''}</div></div></div></div>
+    ${economicsBlock(d)}${lenderMatchBlock(d)}${valueChartBlock(d)}${apprHTML}${incomeBlock(d)}${sensitivityBlock(d)}${borrowerBlock(d)}${canopyBlock(d)}${capexBlock(d)}${areaHTML}${legalBlock(d)}${compsBlock(d)}${factsHTML}${scoreHTML}
+    ${d.note?`<div class="note" style="margin-top:14px;"><b>Data note:</b> ${d.note}</div>`:""}
+    <div class="note" style="margin-top:6px;">Source legend: ${src('live')} RealEstateAPI / Census · ${src('canopy')} Canopy Connect · ${src('sample')} representative seed.</div>`;
+}
+
+function wireDetail(scope){
+  const root=document.getElementById(scope);if(!root)return;
+  const main=root.querySelector("#mainPhoto");
+  root.querySelectorAll(".thumbs img").forEach(t=>t.onclick=()=>{if(main)main.src=t.src;root.querySelectorAll(".thumbs img").forEach(x=>x.classList.remove("active"));t.classList.add("active");});
+  const rb=root.querySelector("#rangeBtns");
+  if(rb&&__active){rb.querySelectorAll("button").forEach(b=>b.onclick=()=>{rb.querySelectorAll("button").forEach(x=>x.classList.remove("active"));b.classList.add("active");__series=valueSeries(__active,Number(b.dataset.y));root.querySelector("#valChart").innerHTML=lineChart(__series);});}
+  const wrap=root.querySelector("#valChartWrap");
+  if(wrap){const tip=wrap.querySelector("#valTip"),guide=wrap.querySelector("#valGuide");
+    wrap.addEventListener("mousemove",ev=>{if(!__series)return;const rect=wrap.getBoundingClientRect();const W=rect.width;const vbX=ev.clientX-rect.left;const n=__series.pts.length;let idx=Math.round(((vbX/W*CHART_W)-CHART_PADL)/(CHART_W-CHART_PADL-CHART_PADR)*(n-1));idx=Math.max(0,Math.min(n-1,idx));const p=__series.pts[idx];const px=(CHART_PADL+(CHART_W-CHART_PADL-CHART_PADR)*(idx/(n-1)))/CHART_W*W;guide.style.display="block";guide.style.left=px+"px";tip.style.display="block";tip.style.left=Math.max(0,Math.min(W-130,px+8))+"px";tip.innerHTML=`<b>${money(p.v)}</b> · ${monLabel(p.k)}`;});
+    wrap.addEventListener("mouseleave",()=>{tip.style.display="none";guide.style.display="none";});}
+  root.querySelectorAll(".comp-row").forEach(r=>r.onclick=()=>openComp(__active,Number(r.dataset.i)));
+  if(root.querySelector("#sl_val")&&__active){const run=()=>runSens(root,__active);["sl_val","sl_bb","sl_term","sl_rent"].forEach(idd=>{const el=root.querySelector("#"+idd);if(el)el.oninput=run;});run();}
+  const at=root.querySelector("#applyTerms");
+  if(at)at.onclick=()=>{const d=DEALS.find(x=>x.id===at.dataset.id)||__active;const g=id=>{const el=root.querySelector("#"+id);const v=el.value;return v===""?null:Number(v);};const sv=id=>{const el=root.querySelector("#"+id);return el?el.value:undefined;};
+    const saleIn=g("ed_sale");d.terms.sale_price=saleIn;d.terms._sale_est=(saleIn==null);
+    d.terms.loan_balance=g("ed_loan");d.terms._loan_est=(g("ed_loan")==null);
+    d.terms.capital_deployed=g("ed_basis");d.terms.buyback_price_y2=g("ed_buyback");d.terms.total_fees=g("ed_fees");d.terms.monthly_rent=g("ed_rent");d.terms.lease_term_months=g("ed_term");
+    d.terms.option_fee_mode=sv("ed_optmode");d.terms.option_fee=g("ed_option");d.terms.option_fee_pct=g("ed_optpct");d.terms.option_fee_basis=sv("ed_optbasis");d.terms.cushion_ref=sv("ed_cushref");
+    rehydrate(d);__active=d;document.getElementById("modalBody").innerHTML=detailHTML(d);wireDetail("modalBody");renderPipeline();};
+  const ss=root.querySelector("#dealStatus");
+  if(ss)ss.onchange=()=>{if(__active){__active.status=ss.value;renderOverview();renderPipeline();}};
+}
+let __onepager=false;
+function renderModal(){const body=document.getElementById("modalBody");if(__onepager){body.innerHTML=onePagerHTML(__active);}else{body.innerHTML=detailHTML(__active);wireDetail("modalBody");}const ic=document.getElementById("icBtn");if(ic)ic.textContent=__onepager?"← Full dossier":"IC One-Pager";}
+function openDetail(id){const d=DEALS.find(x=>x.id===id);if(!d)return;__active=d;__onepager=false;renderModal();const mb=document.getElementById("modalBg");mb.classList.add("open");mb.scrollTop=0;}
+
+/* Investment-committee one-pager (condensed, print-optimized). */
+function onePagerHTML(d){const a=d.analysis,ap=d.appreciation,b=d.borrower,ar=d.area,inc=d.income;const cb=creditBand(b&&b.creditScore);
+  const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const risks=a.factors.filter(f=>f.kind==="risk").sort((x,y)=>y.points-x.points).slice(0,3);
+  const bens=a.factors.filter(f=>f.kind==="benefit").sort((x,y)=>y.points-x.points).slice(0,3);
+  const rep=inc&&inc.repurchase;
+  return `<div class="onepager">
+    <div class="op-head"><div><div class="note" style="font-weight:700;letter-spacing:.5px;color:var(--brand)">INVESTMENT COMMITTEE MEMO</div>
+      <h1>${d.address||"Unknown address"}</h1><div class="note">${[d.city,d.state,d.zip].filter(Boolean).join(", ")}${d.client?` · ${d.client}`:""} · ${today}</div></div>
+      <div style="text-align:right">${chip(a.recommendation)}<div class="note" style="margin-top:4px">Confidence: <b>${cap(a.confidence)}</b> · <span class="risk-${a.risk_level}">${cap(a.risk_level)} risk</span></div></div></div>
+    <div class="op-cols">
+      <div><h3 style="font-size:12px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Deal economics</h3><div class="kv">
+        <dt>Market value</dt><dd>${money(a.market_value)}</dd>
+        <dt>Our cost basis</dt><dd>${money(a.cost_basis)}${a.cost_basis_estimated?' <span class="est">est</span>':''}</dd>
+        <dt>Year-2 buyback</dt><dd>${money(a.buyback_price)}</dd>
+        <dt>Equity cushion</dt><dd>${pct(a.equity_cushion_pct)}</dd>
+        <dt>Buyback ÷ value</dt><dd>${pct(a.buyback_to_value_pct)}</dd>
+        <dt>Hold period</dt><dd>${a.hold_years.toFixed(1)} yrs</dd>
+        <dt>Repurchase ROI</dt><dd>${rep?pct(rep.ann)+'/yr':(a.repurchase_scenario?pct(a.repurchase_scenario.annualized_roi_pct)+'/yr':'—')}</dd>
+        <dt>If walked → resell</dt><dd>${a.resale_scenario?(a.resale_scenario.profitable?'<span class="pos">Profitable</span>':'<span class="neg">Loss</span>'):'—'}</dd>
+        <dt>Expected CapEx</dt><dd>${d.capex?money(d.capex.expected):'—'}</dd>
+        <dt>Appreciation</dt><dd>${ap?ap.annual_rate+'%/yr → '+money(ap.y10.value)+' (10yr)':'—'}</dd>
+      </div></div>
+      <div><h3 style="font-size:12px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Borrower &amp; market</h3><div class="kv">
+        <dt>Credit</dt><dd><span class="credit-badge ${cb.cls}">${cb.label}</span></dd>
+        <dt>Income</dt><dd>${b&&b.monthlyIncome?money(b.monthlyIncome)+'/mo':'—'}</dd>
+        <dt>Housing DTI</dt><dd>${b&&b.estimatedDTI!=null?b.estimatedDTI+'%':'—'}</dd>
+        <dt>Intent</dt><dd style="text-align:right;max-width:60%">${b?b.intent:'—'}</dd>
+        <dt>Population</dt><dd>${ar.population_cagr_pct!=null?(ar.population_cagr_pct>=0?'+':'')+ar.population_cagr_pct+'%/yr':'—'} ${trendTag(ar.population_trend)}</dd>
+        <dt>Home prices</dt><dd>${trendTag(ar.home_price_trend)}</dd>
+        <dt>Schools</dt><dd>${ar.school_rating!=null?ar.school_rating+'/10':'—'}</dd>
+        <dt>Taxes / insurance</dt><dd>${ar.property_tax_rate_pct!=null?ar.property_tax_rate_pct+'%':'—'} / ${ar.insurance_annual_est!=null?money(ar.insurance_annual_est)+'/yr':'—'}</dd>
+      </div></div>
+    </div>
+    <div class="op-cols" style="margin-top:16px;">
+      <div><h3 style="font-size:12px;text-transform:uppercase;color:var(--green);margin-bottom:8px;">Why proceed</h3>${bens.length?('<ul style="margin:0;padding-left:18px;font-size:13px;">'+bens.map(f=>`<li>${f.detail}</li>`).join("")+'</ul>'):'<p class="note">—</p>'}</div>
+      <div><h3 style="font-size:12px;text-transform:uppercase;color:var(--red);margin-bottom:8px;">Key risks</h3>${risks.length?('<ul style="margin:0;padding-left:18px;font-size:13px;">'+risks.map(f=>`<li>${f.detail}</li>`).join("")+'</ul>'):'<p class="note">—</p>'}</div>
+    </div>
+    ${a.warnings.length?`<div class="warn" style="margin-top:14px;">${a.warnings.join(" · ")}</div>`:""}
+    <div class="op-sign"><div><div class="sigline"></div>Prepared by</div><div><div class="sigline"></div>Reviewed by</div><div><div class="sigline"></div>IC decision &amp; date</div></div>
+    <div class="note" style="margin-top:12px;">Generated by the VAB Acquisition Deal Analyzer. Figures: RealEstateAPI (value/comps), US Census (population), Canopy Connect (insurance), provider upload (borrower). ${d.note?'Note: '+d.note:''}</div>
+  </div>`;}
+
+/* Live sensitivity what-if (does not mutate the saved deal). */
+function sensitivityBlock(d){if(d.analysis.market_value==null||d.analysis.cost_basis==null)return "";
+  const mv=d.analysis.market_value,bb=d.terms.buyback_price_y2||d.analysis.buyback_price||0,term=d.terms.lease_term_months||24,rent=d.terms.monthly_rent||0;
+  return `<div class="section"><div class="secttitle">🎚️ Sensitivity analysis</div><div class="card">
+    <div class="sensgrid">
+      <label>Market value <b id="sv_val">${money(mv)}</b><input type="range" id="sl_val" min="-30" max="30" value="0" step="1"></label>
+      <label>Buyback price <b id="sv_bb">${money(bb)}</b><input type="range" id="sl_bb" min="-20" max="20" value="0" step="1"></label>
+      <label>Hold period (months) <b id="sv_term">${term}</b><input type="range" id="sl_term" min="12" max="36" value="${term}" step="6"></label>
+      <label>Monthly rent <b id="sv_rent">${money(rent)}</b><input type="range" id="sl_rent" min="0" max="3000" value="${rent}" step="50"></label>
+    </div>
+    <div id="sensOut" style="margin-top:14px;"></div>
+    <div class="note" style="margin-top:6px;">Live what-if — drag to stress the deal. Does not change the saved record; recomputes the full engine (verdict, cushion, returns, 10-yr value) at the adjusted inputs.</div>
+  </div></div>`;}
+function runSens(root,d){
+  const val=Number(root.querySelector("#sl_val").value),bbA=Number(root.querySelector("#sl_bb").value),term=Number(root.querySelector("#sl_term").value),rent=Number(root.querySelector("#sl_rent").value);
+  const baseMv=d.analysis.market_value,baseBb=d.terms.buyback_price_y2||d.analysis.buyback_price||0;
+  const newMv=Math.round(baseMv*(1+val/100)),newBb=Math.round(baseBb*(1+bbA/100));
+  root.querySelector("#sv_val").textContent=money(newMv);root.querySelector("#sv_bb").textContent=money(newBb);root.querySelector("#sv_term").textContent=term;root.querySelector("#sv_rent").textContent=money(rent);
+  const sd={terms:JSON.parse(JSON.stringify(d.terms)),property:JSON.parse(JSON.stringify(d.property)),facts:d.facts,enrich:d.enrich,borrower:d.borrower,canopy:d.canopy,state:d.state};
+  sd.property.market_value=newMv;sd.property.avm_confidence=d.property.avm_confidence||'medium';
+  sd.terms.buyback_price_y2=newBb;sd.terms.lease_term_months=term;sd.terms.monthly_rent=rent||null;
+  rehydrate(sd);const a=sd.analysis,inc=sd.income,rep=inc&&inc.repurchase,res=inc&&inc.resale;
+  root.querySelector("#sensOut").innerHTML=`<div class="metrics"><div class="metric"><div class="k">Recommendation</div><div class="v" style="font-size:14px;">${chip(a.recommendation)}</div></div><div class="metric"><div class="k">Equity cushion</div><div class="v">${pct(a.equity_cushion_pct)}</div></div><div class="metric"><div class="k">Repurchase net</div><div class="v ${rep&&rep.net>=0?'':'neg'}">${rep?money(rep.net):'—'}</div><div class="h">${rep&&rep.ann!=null?pct(rep.ann)+'/yr':''}</div></div><div class="metric"><div class="k">Resale net</div><div class="v ${res&&res.net>=0?'':'neg'}">${res?money(res.net):'—'}</div></div><div class="metric"><div class="k">10-yr value</div><div class="v">${sd.appreciation?money(sd.appreciation.y10.value):'—'}</div></div><div class="metric"><div class="k">Risk / Benefit</div><div class="v" style="font-size:15px;">${a.risk_score} / ${a.benefit_score}</div></div></div>`;
+}
+
+function openComp(d,i){const c=d.comps[i];if(!c)return;const photos=[['Front','ext'],['Living','living'],['Kitchen','kitchen']].map(([l,k])=>({url:photoSvg(l,c.hue,k),label:l}));const subjPpsf=(d.analysis.market_value&&d.facts.sqft)?Math.round(d.analysis.market_value/d.facts.sqft):null;const delta=subjPpsf?Math.round((c.ppsf-subjPpsf)/subjPpsf*100):null;
+  document.getElementById("compBody").innerHTML=`<div class="gallery" style="margin-top:-30px;"><div class="main"><img src="${photos[0].url}"></div><div class="thumbs" style="grid-template-columns:repeat(3,1fr)">${photos.map(p=>`<img src="${p.url}" title="${p.label}">`).join("")}</div></div>
+    <h2 style="margin-top:14px;">${c.addr}</h2><div class="note">${c.city}, ${c.state} · ${c.dist} mi from subject</div>
+    <div class="metrics" style="margin-top:14px;"><div class="metric"><div class="k">Sold price</div><div class="v">${money(c.price)}</div></div><div class="metric"><div class="k">$/sqft</div><div class="v">$${c.ppsf}</div><div class="h">${delta!=null?(delta>=0?'+':'')+delta+'% vs subject':''}</div></div><div class="metric"><div class="k">Sold date</div><div class="v" style="font-size:15px;">${c.date}</div></div></div>
+    <div class="card" style="margin-top:14px;"><h3>Comparable facts</h3><div class="grid2"><div class="kv"><dt>Beds</dt><dd>${c.beds}</dd><dt>Baths</dt><dd>${c.baths}</dd><dt>Living area</dt><dd>${c.sqft.toLocaleString()} sqft</dd></div><div class="kv"><dt>Lot</dt><dd>${c.lotAcres} ac</dd><dt>Year built</dt><dd>${c.yearBuilt}</dd><dt>Days on market</dt><dd>${c.dom}</dd></div></div></div>
+    <div class="note" style="margin-top:10px;">Comparable modeled for this review ${src('sample')}; production opens the live RealEstateAPI comp record with its own photos &amp; history.</div>`;
+  const cb=document.getElementById("compBg");cb.classList.add("open");cb.scrollTop=0;}
+
+/* CSV import */
+function parseCsvRows(text){const rows=[];let field="",row=[],q=false;for(let i=0;i<text.length;i++){const c=text[i];if(q){if(c==='"'){if(text[i+1]==='"'){field+='"';i++;}else q=false;}else field+=c;}else if(c==='"')q=true;else if(c===','){row.push(field);field="";}else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(field);rows.push(row);row=[];field="";}else field+=c;}if(field.length>0||row.length>0){row.push(field);rows.push(row);}return rows.filter(r=>r.some(c=>c.trim()!==""));}
+function parseMoney(raw){if(!raw)return undefined;const c=raw.replace(/[^0-9.\-]/g,"");if(c===""||c==="-"||c===".")return undefined;const n=Number(c);return isFinite(n)?n:undefined;}
+function parseAddr(raw){const primary=raw.split("&")[0].trim();const parts=primary.split(",").map(p=>p.trim()).filter(Boolean);if(!parts.length)return{};const out={address:parts[0]};if(parts.length>=2)out.city=parts[1];const tail=parts[parts.length-1],m=tail.match(/\b([A-Za-z]{2})\b\s*(\d{5})?/);if(m&&parts.length>=3){out.state=m[1].toUpperCase();if(m[2])out.zip=m[2];}else if(parts.length===2){const m2=parts[1].match(/\b([A-Za-z]{2})\b\s*(\d{5})?/);if(m2){out.state=m2[1].toUpperCase();if(m2[2])out.zip=m2[2];out.city=undefined;}}return out;}
+const ALIASES={"client name":"client",client:"client",name:"client",address:"address","property address":"address",email:"email",phone:"phone","year 2 buyback":"buyback","2 year buyback":"buyback",buyback:"buyback","buyback price":"buyback","capital deployed":"capital",basis:"capital","cost basis":"capital","funding amount":"capital","option fee":"option","monthly rent":"rent",rent:"rent","lease term":"term","lease term months":"term"};
+function applyTemplate(t,buyback){if(buyback==null)return t;if(t.capital_deployed==null)t.capital_deployed=Math.round(buyback*TEMPLATE.fundPct/100);const basis=t.capital_deployed;if(t.option_fee==null)t.option_fee=Math.round(basis*TEMPLATE.optionPct/100);if(t.total_fees==null)t.total_fees=Math.round(basis*TEMPLATE.feesPct/100);if(t.lease_term_months==null)t.lease_term_months=TEMPLATE.termMonths;return t;}
+function parseDealsCsv(text){const rows=parseCsvRows(text);if(rows.length<2)return{deals:[],errors:["Need a header row and at least one data row."]};const header=rows[0].map(h=>ALIASES[h.trim().toLowerCase()]);if(!header.includes("address"))return{deals:[],errors:['No "Address" column found.']};const deals=[];for(let r=1;r<rows.length;r++){const cells=rows[r];const get=k=>{const i=header.indexOf(k);return i>=0?(cells[i]||"").trim():undefined;};const addr=get("address");if(!addr)continue;const loc=parseAddr(addr);const bb=parseMoney(get("buyback"))??null;const terms=applyTemplate({capital_deployed:parseMoney(get("capital"))??null,buyback_price_y2:bb,option_fee:parseMoney(get("option"))??null,monthly_rent:parseMoney(get("rent"))??null,lease_term_months:parseMoney(get("term"))??null},bb);deals.push({client:get("client"),address:loc.address,city:loc.city,state:loc.state,zip:loc.zip,terms,property:{market_value:null},facts:{},enrich:{},note:"Imported via CSV — facts/value fill from RealEstateAPI in production."});}return{deals,errors:deals.length?[]:["No data rows with an address found."]};}
+
+/* ============================================================================ LENDER MATCHING */
+const STATUS_LABEL={pipeline:"In pipeline",purchasing:"Being purchased",purchased:"Purchased",passed:"Passed"};
+function loanAmountFor(d){const a=d.analysis||{};return a.cost_basis!=null?a.cost_basis:costBasis(d.terms||{}).v;}
+function dscrFor(d){const rent=(d.enrich&&d.enrich.rentEstimate)||(d.terms&&d.terms.monthly_rent);const loan=loanAmountFor(d);if(!rent||!loan)return null;const pay=loan*0.09/12;return pay>0?rent/pay:null;}
+/* Evaluate every lender against a deal. A blank requirement is skipped (= no requirement). */
+function matchLenders(d){
+  const a=d.analysis||{},loan=loanAmountFor(d),mv=a.market_value;
+  const ltv=(loan!=null&&mv)?Math.round(loan/mv*100):null, dscr=dscrFor(d);
+  const age=(d.facts&&d.facts.yearBuilt)?CURRENT_YEAR-d.facts.yearBuilt:null;
+  const reserves=(d.borrower&&d.borrower.liquidAssets)||0, payment=loan?loan*0.09/12:null;
+  const qualified=[],blocked=[];
+  LENDERS.forEach(L=>{const f=[];
+    if(L.states&&L.states.length&&d.state&&!L.states.includes(d.state)) f.push(`Doesn't lend in ${d.state}`);
+    if(L.loanMin!=null&&loan!=null&&loan<L.loanMin) f.push(`Loan ${money(loan)} < min ${money(L.loanMin)}`);
+    if(L.loanMax!=null&&loan!=null&&loan>L.loanMax) f.push(`Loan ${money(loan)} > max ${money(L.loanMax)}`);
+    if(L.maxLTV!=null&&ltv!=null&&ltv>L.maxLTV) f.push(`LTV ${ltv}% > ${L.maxLTV}%`);
+    if(L.minDSCR!=null&&dscr!=null&&dscr<L.minDSCR) f.push(`DSCR ${dscr.toFixed(2)} < ${L.minDSCR}`);
+    if(L.minReserveMonths!=null&&payment!=null&&reserves<L.minReserveMonths*payment) f.push(`Reserves < ${L.minReserveMonths} mo`);
+    if(L.maxAge!=null&&age!=null&&age>L.maxAge) f.push(`Built ${d.facts.yearBuilt} — older than ${L.maxAge} yrs`);
+    (f.length?blocked:qualified).push({L,fails:f});
+  });
+  return {qualified,blocked,ctx:{loan,ltv,dscr,age}};
+}
+function lenderMatchBlock(d){
+  const m=matchLenders(d),c=m.ctx;
+  const row=(x,ok)=>`<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 11px;border-radius:9px;margin-bottom:6px;background:${ok?'#eafaf1':'#fdeef0'};border:1px solid ${ok?'#bfe6d2':'#f6cdd5'};"><div><b>${x.L.name}</b>${x.L.notes?` <span class="note">— ${x.L.notes}</span>`:""}</div>${ok?'<span style="color:#177a52;font-weight:700;white-space:nowrap;">✓ Qualifies</span>':`<span style="color:#b3122f;font-size:12px;text-align:right;">${x.fails.join(" · ")}</span>`}</div>`;
+  return `<div class="section"><div class="secttitle">🏦 Lender fit — ${m.qualified.length} of ${LENDERS.length} can fund this deal</div><div class="card">
+    <div class="metrics" style="margin-bottom:12px;">
+      <div class="metric"><div class="k">Loan needed</div><div class="v">${money(c.loan)}</div></div>
+      <div class="metric"><div class="k">LTV</div><div class="v">${c.ltv!=null?Math.round(c.ltv)+'%':'—'}</div></div>
+      <div class="metric"><div class="k">Est. DSCR</div><div class="v">${c.dscr!=null?c.dscr.toFixed(2):'—'}</div><div class="h">rent ÷ IO @9%</div></div>
+      <div class="metric"><div class="k">Property age</div><div class="v">${c.age!=null?c.age+' yrs':'—'}</div></div>
+    </div>
+    ${m.qualified.map(x=>row(x,true)).join("")}
+    ${m.blocked.map(x=>row(x,false)).join("")}
+    <div class="note" style="margin-top:8px;">Requirements come from the <b>Lenders</b> tab — a blank field there means that lender has no requirement on that parameter.</div>
+  </div></div>`;
+}
+
+/* Buyer/situation/property synopsis — homeowner name bolded. */
+function generateSynopsis(d){
+  const b=d.borrower||{},f=d.facts||{},a=d.analysis||{};
+  const name=d.client||"The homeowner", loc=[d.city,d.state].filter(Boolean).join(", ");
+  const intent=(b.intent&&b.intent!=="Not stated")?b.intent:null;
+  const emp=(b.employment&&b.employment!=="Not provided")?b.employment:null;
+  const inc=b.monthlyIncome?money(b.monthlyIncome)+"/mo":null;
+  const struct=[f.beds!=null?f.beds+" bd":"",f.baths!=null?f.baths+" ba":"",f.sqft?f.sqft.toLocaleString()+" sqft":""].filter(Boolean).join(" / ");
+  const built=f.yearBuilt?`built ${f.yearBuilt}`:"", typ=f.type||"home";
+  let s=`<b>${name}</b>${loc?` of ${loc}`:""} is entering a sale-leaseback`;
+  if(intent) s+=` — looking to ${intent.charAt(0).toLowerCase()+intent.slice(1)}`;
+  s+=`. `;
+  if(emp||inc||b.creditScore){ s+=`They report ${[emp,inc].filter(Boolean).join(", ")||"limited financials"}${b.creditScore?`, credit ~${b.creditScore}`:""}. `; }
+  s+=`The property is a ${[built,typ].filter(Boolean).join(" ")}${struct?` (${struct})`:""}${loc?` in ${loc}`:""}, valued ~${money(a.market_value)} against a Year-2 buyback of ${money(a.buyback_price)}. `;
+  if(d.note) s+=d.note;
+  return s;
+}
+
+/* Local landlord–tenant legal stance for the property's locale. */
+function legalBlock(d){
+  const L=STATE_LEGAL[d.state]||STATE_LEGAL._default;
+  const col=L.lean.startsWith("Landlord")?"var(--green)":L.lean.startsWith("Tenant")?"var(--red)":"var(--amber)";
+  return `<div class="section"><div class="secttitle">⚖️ Local landlord–tenant stance</div><div class="card">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">
+      <span style="font-weight:800;font-size:13px;color:#fff;background:${col};padding:4px 12px;border-radius:999px;">${L.lean}</span>
+      <span class="note">${[d.city,d.state].filter(Boolean).join(", ")||"Unknown locale"} — eviction laws favor the ${L.lean.startsWith("Landlord")?"landlord":L.lean.startsWith("Tenant")?"tenant":"neither side strongly"}</span>
+    </div>
+    <div class="kv"><dt>Eviction posture</dt><dd style="font-weight:500;">${L.eviction}</dd></div>
+    <div style="margin-top:12px;"><div style="font-weight:700;font-size:13px;color:var(--ink);">Laws to know before acquiring</div>
+      <ul style="margin:6px 0 0;padding-left:18px;font-size:13px;line-height:1.55;">${L.notes.map(n=>`<li>${n}</li>`).join("")}</ul></div>
+    <div class="note" style="margin-top:10px;">Representative legal summary for this review — confirm current state + county statutes with counsel before close.</div>
+  </div></div>`;
+}
+
+/* ============================================================================ OVERVIEW */
+function renderOverview(){
+  const body=document.getElementById("overviewBody");if(!body)return;
+  const by=s=>DEALS.filter(d=>(d.status||"pipeline")===s);
+  const pipeline=by("pipeline"),purchasing=by("purchasing"),purchased=by("purchased"),passed=by("passed");
+  const recCount=r=>DEALS.filter(d=>d.analysis.recommendation===r).length;
+  const cushions=DEALS.map(d=>d.analysis.equity_cushion_pct).filter(v=>v!=null);
+  const avgC=cushions.length?cushions.reduce((x,y)=>x+y,0)/cushions.length:null;
+  const capDeployed=purchased.concat(purchasing).reduce((s,d)=>s+(d.analysis.cost_basis||0),0);
+  const purchasedMV=purchased.reduce((s,d)=>s+(d.analysis.market_value||0),0);
+  const pipeMV=pipeline.concat(purchasing).reduce((s,d)=>s+(d.analysis.market_value||0),0);
+  const equityCaptured=purchased.reduce((s,d)=>{const a=d.analysis;return s+((a.market_value||0)-(a.cost_basis||0));},0);
+  const states={};DEALS.forEach(d=>{if(d.state)states[d.state]=(states[d.state]||0)+1;});
+  const topStates=Object.entries(states).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const funnel=[["In pipeline",pipeline.length,"var(--brand)"],["Being purchased",purchasing.length,"var(--amber)"],["Purchased",purchased.length,"var(--green)"],["Passed",passed.length,"var(--red)"]];
+  const fmax=Math.max(1,...funnel.map(f=>f[1]));
+  body.innerHTML=`
+    <h2 style="margin:4px 0 4px;">Program overview</h2>
+    <p class="note" style="margin-top:0;">Live snapshot of the sale-leaseback acquisition program across every intake path.</p>
+    <div class="metrics" style="grid-template-columns:repeat(4,1fr);margin:14px 0 6px;">
+      <div class="metric"><div class="k">Deals in pipeline</div><div class="v">${pipeline.length}</div><div class="h">under review</div></div>
+      <div class="metric"><div class="k">Being purchased</div><div class="v" style="color:var(--amber)">${purchasing.length}</div><div class="h">in closing</div></div>
+      <div class="metric"><div class="k">Purchased</div><div class="v" style="color:var(--green)">${purchased.length}</div><div class="h">closed & held</div></div>
+      <div class="metric"><div class="k">Passed</div><div class="v" style="color:var(--red)">${passed.length}</div><div class="h">declined</div></div>
+    </div>
+    <div class="metrics" style="grid-template-columns:repeat(4,1fr);margin:6px 0 18px;">
+      <div class="metric"><div class="k">Capital deployed</div><div class="v">${money(capDeployed)}</div><div class="h">purchased + in-closing</div></div>
+      <div class="metric"><div class="k">Equity captured</div><div class="v" style="color:var(--green)">${money(equityCaptured)}</div><div class="h">market − basis (purchased)</div></div>
+      <div class="metric"><div class="k">Pipeline value</div><div class="v">${money(pipeMV)}</div><div class="h">market value, open deals</div></div>
+      <div class="metric"><div class="k">Avg equity cushion</div><div class="v">${pct(avgC)}</div><div class="h">all scored deals</div></div>
+    </div>
+    <div class="grid2" style="gap:16px;">
+      <div class="card"><h3>Acquisition funnel</h3>
+        ${funnel.map(([lab,n,col])=>`<div style="margin:8px 0;"><div style="display:flex;justify-content:space-between;font-size:13px;"><span>${lab}</span><b>${n}</b></div><div class="bar" style="background:#eef2f6;"><span style="width:${Math.round(n/fmax*100)}%;background:${col};display:block;height:100%;border-radius:inherit;"></span></div></div>`).join("")}
+      </div>
+      <div class="card"><h3>Recommendation mix</h3>
+        <div class="metrics" style="grid-template-columns:repeat(2,1fr);">
+          <div class="metric"><div class="k">Proceed</div><div class="v" style="color:var(--green)">${recCount("proceed")}</div></div>
+          <div class="metric"><div class="k">Conditional</div><div class="v" style="color:var(--amber)">${recCount("conditional")}</div></div>
+          <div class="metric"><div class="k">Pass</div><div class="v" style="color:var(--red)">${recCount("pass")}</div></div>
+          <div class="metric"><div class="k">Insufficient</div><div class="v" style="color:var(--muted)">${recCount("insufficient_data")}</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid2" style="gap:16px;margin-top:16px;">
+      <div class="card"><h3>Where the deals are</h3>
+        ${topStates.length?topStates.map(([st,n])=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);"><span>${st}</span><b>${n} deal${n>1?'s':''}</b></div>`).join(""):'<p class="note">No deals yet.</p>'}
+      </div>
+      <div class="card"><h3>Funding capacity</h3>
+        <div class="kv"><dt>Lenders configured</dt><dd><b>${LENDERS.length}</b></dd><dt>Nationwide lenders</dt><dd>${LENDERS.filter(l=>!l.states||!l.states.length).length}</dd><dt>Regional lenders</dt><dd>${LENDERS.filter(l=>l.states&&l.states.length).length}</dd></div>
+        <p class="note" style="margin-top:8px;">Manage requirements on the <b>Lenders</b> tab. Open any deal to see which lenders qualify.</p>
+      </div>
+    </div>`;
+}
+
+/* ============================================================================ LENDERS TAB */
+function fmtReq(v,suffix,prefix){return v==null||v===""?'<span class="note">—</span>':(prefix||"")+v+(suffix||"");}
+function renderLenders(){
+  const body=document.getElementById("lendersBody");if(!body)return;
+  body.innerHTML=`
+    <h2 style="margin:4px 0 4px;">Lenders for this product</h2>
+    <p class="note" style="margin-top:0;">The lenders we work with and their funding requirements. A <b>blank</b> field means that lender has <b>no requirement</b> on that parameter (e.g. leave “Max property age” blank if they don’t care about the home’s age). Each deal’s dossier shows which lenders qualify.</p>
+    <div class="card" style="overflow-x:auto;margin-top:12px;">
+      <table><thead><tr><th>Lender</th><th>Locations</th><th class="num">Loan min</th><th class="num">Loan max</th><th class="num">Max LTV</th><th class="num">Min DSCR</th><th class="num">Reserves</th><th class="num">Max age</th><th>Notes</th><th></th></tr></thead>
+      <tbody>${LENDERS.map((l,i)=>`<tr>
+        <td><b>${l.name}</b></td>
+        <td>${l.states&&l.states.length?l.states.join(", "):'<span class="note">Nationwide</span>'}</td>
+        <td class="num">${fmtReq(l.loanMin,"","$")}</td>
+        <td class="num">${fmtReq(l.loanMax,"","$")}</td>
+        <td class="num">${fmtReq(l.maxLTV,"%")}</td>
+        <td class="num">${fmtReq(l.minDSCR)}</td>
+        <td class="num">${fmtReq(l.minReserveMonths," mo")}</td>
+        <td class="num">${fmtReq(l.maxAge," yrs")}</td>
+        <td class="note">${l.notes||""}</td>
+        <td><button class="btn ghost lenderDel" data-i="${i}" title="Remove">✕</button></td>
+      </tr>`).join("")}</tbody></table>
+    </div>
+    <div class="card" style="margin-top:16px;"><h3>Add a lender</h3>
+      <p class="note" style="margin-top:0;">Leave any requirement blank if the lender doesn’t care about it.</p>
+      <div class="formgrid">
+        <label class="field" style="grid-column:1/3;"><span>Lender name</span><input type="text" id="ln_name" placeholder="e.g. Acme DSCR Fund"></label>
+        <label class="field" style="grid-column:1/3;"><span>Locations (state codes, comma-separated — blank = nationwide)</span><input type="text" id="ln_states" placeholder="FL, TX, GA"></label>
+        <label class="field"><span>Loan minimum ($)</span><input type="number" id="ln_loanMin"></label>
+        <label class="field"><span>Loan maximum ($)</span><input type="number" id="ln_loanMax"></label>
+        <label class="field"><span>Max LTV (%)</span><input type="number" id="ln_maxLTV"></label>
+        <label class="field"><span>Min DSCR (x)</span><input type="number" step="0.05" id="ln_minDSCR"></label>
+        <label class="field"><span>Reserve requirement (months)</span><input type="number" id="ln_reserve"></label>
+        <label class="field"><span>Max property age (years)</span><input type="number" id="ln_maxAge"></label>
+        <label class="field" style="grid-column:1/3;"><span>Notes</span><input type="text" id="ln_notes"></label>
+      </div>
+      <button class="btn" id="ln_add" style="margin-top:12px;">Add lender</button>
+    </div>`;
+  body.querySelectorAll(".lenderDel").forEach(b=>b.onclick=()=>{LENDERS.splice(Number(b.dataset.i),1);renderLenders();renderOverview();});
+  const add=body.querySelector("#ln_add");
+  if(add)add.onclick=()=>{
+    const v=id=>{const el=body.querySelector("#"+id);return el?el.value.trim():"";};
+    const n=id=>{const x=v(id);return x===""?null:Number(x);};
+    const name=v("ln_name");if(!name){alert("Enter a lender name.");return;}
+    const states=v("ln_states").split(",").map(s=>s.trim().toUpperCase()).filter(Boolean);
+    LENDERS.push({name,states,loanMin:n("ln_loanMin"),loanMax:n("ln_loanMax"),maxLTV:n("ln_maxLTV"),minDSCR:n("ln_minDSCR"),minReserveMonths:n("ln_reserve"),maxAge:n("ln_maxAge"),notes:v("ln_notes")});
+    renderLenders();renderOverview();
+  };
+}
+
+/* Wiring */
+DEALS.forEach(hydrate);
+DEALS.forEach((d,i)=>{ if(!d.status) d.status=["purchased","pipeline","purchasing","pipeline","pipeline","passed","pipeline","purchased","pipeline","purchasing"][i%10]||"pipeline"; });
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));t.classList.add("active");document.getElementById("panel-"+t.dataset.tab).classList.add("active");const tb=t.dataset.tab;if(tb==="overview")renderOverview();else if(tb==="lenders")renderLenders();});
+document.getElementById("filterRec").onchange=renderPipeline;
+document.querySelectorAll("th.sortable").forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(__sortKey===k)__sortDir*=-1;else{__sortKey=k;__sortDir=(k==="address")?1:-1;}renderPipeline();});
+document.getElementById("modalX").onclick=()=>document.getElementById("modalBg").classList.remove("open");
+document.getElementById("modalBg").onclick=e=>{if(e.target.id==="modalBg")e.currentTarget.classList.remove("open");};
+document.getElementById("compX").onclick=()=>document.getElementById("compBg").classList.remove("open");
+document.getElementById("compBg").onclick=e=>{if(e.target.id==="compBg")e.currentTarget.classList.remove("open");};
+document.getElementById("compareBtn").onclick=openCompare;
+document.getElementById("compareX").onclick=()=>document.getElementById("compareBg").classList.remove("open");
+document.getElementById("compareBg").onclick=e=>{if(e.target.id==="compareBg")e.currentTarget.classList.remove("open");};
+document.getElementById("printBtn").onclick=()=>window.print();
+document.getElementById("comparePrint").onclick=()=>window.print();
+document.getElementById("icBtn").onclick=()=>{__onepager=!__onepager;renderModal();};
+
+function readForm(){const num=id=>{const v=document.getElementById(id).value;return v===""?null:Number(v);};const txt=id=>document.getElementById(id).value.trim()||undefined;const bb=num("t_buyback");const terms=applyTemplate({capital_deployed:num("t_basis"),sale_price:num("t_sale"),loan_balance:num("t_loan"),buyback_price_y2:bb,option_fee:num("t_option"),total_fees:num("t_fees"),monthly_rent:num("t_rent"),lease_term_months:num("t_term")},bb);return{client:txt("f_client"),address:txt("f_address"),city:txt("f_city"),state:txt("f_state"),zip:txt("f_zip"),terms,property:{market_value:num("f_market"),avm_confidence:num("f_market")!=null?"medium":"none"},facts:{},enrich:{}};}
+document.getElementById("analyzeBtn").onclick=()=>{const d=readForm();hydrate(d);__active=d;document.getElementById("newResult").innerHTML=detailHTML(d);wireDetail("newResult");};
+document.getElementById("saveBtn").onclick=()=>{const d=readForm();if(!d.address){alert("Enter at least an address.");return;}hydrate(d);DEALS.unshift(d);renderPipeline();document.querySelector('.tab[data-tab="pipeline"]').click();};
+
+let bulkFmt="csv";const bulkHelp=document.getElementById("bulkHelp");
+document.getElementById("fmtCsv").onclick=function(){bulkFmt="csv";this.classList.add("active");document.getElementById("fmtJson").classList.remove("active");bulkHelp.innerHTML='Paste rows from the Afford portfolio sheet. First row = headers (e.g. <code>Client Name, Address, Email, Year 2 Buyback</code>).';};
+document.getElementById("fmtJson").onclick=function(){bulkFmt="json";this.classList.add("active");document.getElementById("fmtCsv").classList.remove("active");bulkHelp.innerHTML='Paste a JSON array of deals (each with <code>address</code>, <code>state</code>, and a <code>terms</code> object).';};
+document.getElementById("loadSample").onclick=()=>{document.getElementById("bulkText").value=`Client Name,Address,Email,Year 2 Buyback\nSeth Teel,"764 N. Custer St, Wichita, KS 67203",travelingwholesale1@gmail.com,"$106,565.51"\nMichael Weis,"97 Chaplin St, Chaplin, CT 06235",,"$188,287.96"\nAdam Walker,"901 S. Santa Ana Dr, Tucson, AZ 85710",901santaana@gmail.com,"$200,945.67"`;bulkFmt="csv";document.getElementById("fmtCsv").click();};
+document.getElementById("bulkImport").onclick=()=>{const msg=document.getElementById("bulkMsg");msg.textContent="";msg.className="";const text=document.getElementById("bulkText").value;try{let incoming;if(bulkFmt==="csv"){const r=parseDealsCsv(text);if(r.errors.length&&!r.deals.length)throw new Error(r.errors.join(" "));incoming=r.deals;}else{const p=JSON.parse(text);incoming=Array.isArray(p)?p:p.deals;if(!Array.isArray(incoming))throw new Error("Expected a JSON array.");}if(!incoming.length)throw new Error("No deals to import.");incoming.forEach(d=>{d.property=d.property||{market_value:null};d.facts=d.facts||{};d.enrich=d.enrich||{};if(d.property.avm_confidence==null)d.property.avm_confidence=d.property.market_value!=null?"medium":"none";hydrate(d);DEALS.unshift(d);});msg.className="ok-msg";msg.textContent=`Imported ${incoming.length} deal(s).`;renderPipeline();document.querySelector('.tab[data-tab="pipeline"]').click();}catch(e){msg.className="err-msg";msg.textContent=e.message;}};
+
+function loadTemplateInputs(){tpl_fund.value=TEMPLATE.fundPct;tpl_option.value=TEMPLATE.optionPct;tpl_fees.value=TEMPLATE.feesPct;tpl_term.value=TEMPLATE.termMonths;tpl_rent.value=TEMPLATE.rentPctYr;tpl_stepup.value=TEMPLATE.stepUpPct;}
+document.getElementById("saveTemplate").onclick=()=>{TEMPLATE.fundPct=Number(tpl_fund.value)||88;TEMPLATE.optionPct=Number(tpl_option.value)||7;TEMPLATE.feesPct=Number(tpl_fees.value)||9;TEMPLATE.termMonths=Number(tpl_term.value)||24;TEMPLATE.rentPctYr=Number(tpl_rent.value)||9;TEMPLATE.stepUpPct=Number(tpl_stepup.value)||8;document.getElementById("tplMsg").textContent="Saved — applied to new/imported deals.";};
+
+function loadAssumptionInputs(){a_ratio.value=ASSUMPTIONS.fundingRatio;a_coc.value=ASSUMPTIONS.costOfCapitalPctPerYear*100;a_sell.value=ASSUMPTIONS.sellingCostPct*100;a_maint.value=ASSUMPTIONS.maintenancePctPerYear*100;a_hold.value=ASSUMPTIONS.defaultHoldYears;}
+document.getElementById("applyAssumptions").onclick=()=>{ASSUMPTIONS.fundingRatio=Number(a_ratio.value)||0.88;ASSUMPTIONS.costOfCapitalPctPerYear=(Number(a_coc.value)||8)/100;ASSUMPTIONS.sellingCostPct=(Number(a_sell.value)||7)/100;ASSUMPTIONS.maintenancePctPerYear=(Number(a_maint.value)||1)/100;ASSUMPTIONS.defaultHoldYears=Number(a_hold.value)||2;rescoreAll();renderPipeline();document.querySelector('.tab[data-tab="pipeline"]').click();};
+
+loadTemplateInputs();loadAssumptionInputs();renderPipeline();renderOverview();
+</script>
+</body>
+</html>
