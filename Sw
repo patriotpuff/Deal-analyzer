@@ -1,0 +1,73 @@
+/* Deal Analyzer — offline service worker.
+   Bump CACHE (e.g. v1 -> v2) whenever you change any file, so iPads pull the update. */
+const CACHE = 'deal-analyzer-v1';
+
+const APP_SHELL = [
+  './',
+  './index.html',
+  './manifest.webmanifest',
+  './icon-180.png',
+  './icon-192.png',
+  './icon-512.png',
+  './icon-512-maskable.png'
+];
+
+// Install: cache the app shell, then take over immediately.
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then((cache) => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
+  );
+});
+
+// Activate: drop any older caches.
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+// Fetch strategy.
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+
+  // Page loads: serve the cached app, fall back to the network.
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      caches.match('./index.html').then((cached) => cached || fetch(req))
+    );
+    return;
+  }
+
+  // Map libraries from the CDN (d3 / topojson / us-atlas): cache-first, so the
+  // U.S. map keeps working offline once it has loaded once with a connection.
+  if (url.origin !== self.location.origin) {
+    event.respondWith(
+      caches.open(CACHE).then((cache) =>
+        cache.match(req).then((hit) =>
+          hit || fetch(req).then((res) => {
+            try { cache.put(req, res.clone()); } catch (_) {}
+            return res;
+          }).catch(() => hit)
+        )
+      )
+    );
+    return;
+  }
+
+  // Everything same-origin: serve from cache, fall back to network, then to the app shell.
+  event.respondWith(
+    caches.match(req).then((hit) =>
+      hit || fetch(req).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy));
+        return res;
+      }).catch(() => caches.match('./index.html'))
+    )
+  );
+});
